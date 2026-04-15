@@ -1,0 +1,265 @@
+---
+title: "RLab 08a – Random Forest Model (part 1)"
+author: "Roshan Thapa Magar"
+date: "Date"
+Format: html
+output-file: "RLab08a-roshanthapamagar"
+output-ext: "html"
+editor: source
+---
+
+# Introduction
+
+## Data and Variables
+
+We'll be using a new data set in this lab: a data set of housing prices in Ames, Iowa, from 2006-2010. Truman's own Dean DeCock prepared this dataset, and while he intended it for Regression, it works great for Random Forests, too. Ames is home to Iowa State University, and has about 60,000 people (3x the size of Kirksville)
+
+In this lab, we're mainly going to be looking at using the details of each property sold to predict its price.
+
+## Loading Data and Libraries
+
+This first bit of code loads our data set `home_prices_training.csv` and libraries. The new library this time around is the `randomForest` library, which will give us the `randomForest` command, among others, and `AmesHousing`, which is the data supplied by Dr. DeCock. Remove #s as you need to
+
+```{r}
+library(tidyverse)
+library(rpart)
+library(rpart.plot)
+#install.packages("randomForest", repos='https://cran.case.edu/' ) 
+#install.packages("AmesHousing", repos='https://cran.case.edu/' ) 
+library(randomForest)
+library(Metrics)
+library(AmesHousing)
+raw.ames <- make_ordinal_ames()
+```
+
+# Looking at the Data
+
+Let's spend some time exploring the data. First, we'll check the columns and size of the data set. The `dim` command gives the number of rows and columns. Note that we have \~3000 data points for 81 variables
+
+```{r}
+head(raw.ames)
+dim(raw.ames)
+```
+
+## Home Prices
+
+The response variable in our analysis is `price`. Let's graph it.
+
+```{r}
+raw.ames %>% ggplot() + geom_histogram(mapping = aes(x=Sale_Price))
+```
+
+Note that there are a few really expensive houses. If we don't predict these houses very well, they might make our error estimates huge. Or, put another way, if we tune our predictive models to minimize error, we may end up *overfitting* these outliers at the expense of other data points. One way to avoid this is to transform our `price` variable using the logarithm function.
+
+### Side-note on Logarithms
+
+Remember that a logarithm function $\log_a$ is defined as follows: $\log_a(x) = b$ if and only if $a^b = x$. \[Note that these formulas will look right in the knit version of this document.\] In other words, $\log_a(x)$ is the power you'd have to raise $a$ to in order to get $x$. This is read as "log base a."
+
+There are two bases normally used with logarithms: "base 10" and "base *e*." Remember that *e* is the special number with non-terminating decimal expansion e=2.718282.... Logarithms base e have a special place in Calculus, have nice theoretical properties, and are called "natural logarithms." In calculus, they're represented as the *ln* function, but in R, the `log` function represents natural logarithms.
+
+Important features of the natural log function include:
+
+-   `log(x)` is only defined for *positive* values of *x*.
+-   Logarithms are strictly increasing as *x* increases.
+-   A log transform will rescale a variable, often changing right-skewed data into a more symmetric form.
+-   Because the transformation can be undone, if we can predict `log(x)` for some variable, we can do the inverse transform at the end to predict *x*: $e^{\log(x)} = x$.
+
+In R code, the `exp` function is the inverse of the `log` function. Let's try it:
+
+```{r}
+log(372)
+exp(log(372))
+```
+
+The following code replaces the original `price` variable with a new variable `log.price`. The histograms looks pretty normal after we do the log transform.
+
+```{r logprice}
+ames <- raw.ames %>%
+  mutate(log.price = log(Sale_Price)) %>% select(-Sale_Price)
+ames %>% ggplot() + geom_histogram(mapping=aes(x=log.price))
+```
+
+## Overall Measures
+
+### Overall_Qual and Overall_Cond
+
+Both Overall_Qual and Over_Cond are 1-10 scale that rate properties on the overall quality of the house (nice building materials) and overall condition (well maintained).
+
+```{r}
+ames.cond.table <- ames %>%
+  count(Overall_Cond, Overall_Qual)%>%
+  spread(Overall_Qual,n, fill=0)
+ 
+ames.cond.table
+View(ames.cond.table)
+```
+
+### Question 1
+
+Based on the table, do the two Overall variables seem to go together? Briefly explain why this might be helpful or not helpful.
+
+Looking at the table, the two Overall variables (Overall_Qual and Overall_Cond) are related but not perfectly matched. Most houses cluster around Average condition with Average quality (300 houses in that cell), which shows they often go together. However, there are many houses where they don't match - for example, 456 houses have Average condition but Good quality, and 178 houses have Good condition with Good quality. This is helpful because they measure different things: Overall_Qual tells us about the building materials and construction quality, while Overall_Cond tells us about how well the house has been maintained. A house can be well-built (high quality) but poorly maintained (low condition), or vice versa. Having both variables helps the model understand that a well-built but run-down house might have different value than a moderately-built but well-maintained house.
+
+## Measures of Location
+
+### Latitude and Longitude
+
+The `long` and `lat` variables are different from most of the others in that they specify the property's physical location. Let's graph them together---on a small piece of the earth, longitude acts as an x coordinate, while latitude acts as a y coordinate (The earth is round, but it is actually easier to pretend that small rectangles of it are flat). We'll color the points according to `log.price`. In essence, this gives a "map" of price. You could also do exp(log.price) to get back to real prices.
+
+```{r}
+ames %>% ggplot() +
+  geom_point(mapping = aes(x=Longitude, y=Latitude, color=log.price))
+```
+
+### Question 2
+
+Use a web browser to search for "map of Ames Iowa," or some similar search term, and use it to answer these questions:\
+a) What do the empty areas correspond to in the real world? b) How about home prices near Iowa State University? c) Where is the region with the highest home prices? **Answer below.**
+
+a)  The empty areas in the plot correspond to places where no houses were sold during the data collection period. Iowa State University represents the middle empty area, while the other parts represent the Airport(South), Lodge(North), and Farmland(East). The empty plots are generally parks, commercial districts, agricultural land, undeveloped areas, or other non-residential zones.
+
+b)  Home prices near Iowa State University are typically a mix of all types of prices. The area around the university is dominated by student housing, rental properties, and smaller homes that cater to the university population, which keeps prices more affordable, however some are closer to the central part of the town that makes the price higher for properties around that region.
+
+c)  The region with the highest home prices is typically in the central-eastern or western parts of Ames, away from the university. These areas tend to have larger, newer homes and upscale neighborhoods that command higher prices.
+
+## Looking at Other Variables
+
+There are lots of variables here. Ideally, you'd look at them all and examine their relationship to price. I'll only ask you to look at a few here.
+
+### Question 3
+
+Look at the list of variables, and choose two or three that you think will be most highly correlated to price. For each variable you chose, create an appropriate graph of its relationship to `log.price`. Then give a brief description of the nature of each relationship. **Answer in the code block below.**
+
+```{r Q3}
+# Find variables most correlated with log.price
+cor_sorted <- ames %>%
+  select(where(is.numeric)) %>%
+  map_dbl(~ cor(.x, ames$log.price, use = "complete.obs")) %>%
+  abs() %>%
+  sort(decreasing = TRUE)
+cor_sorted
+
+# Top 3 variables: Gr_Liv_Area (0.696), Garage_Cars (0.675), Garage_Area (0.650)
+
+# Graph 1: Gr_Liv_Area vs log.price
+ames %>% ggplot(aes(x = Gr_Liv_Area, y = log.price)) +
+  geom_point(alpha = 0.3) +
+  geom_smooth(method = "lm", color = "red") +
+  labs(title = "Living Area vs Log Price",
+       x = "Above Grade Living Area (sq ft)", 
+       y = "Log Price")
+
+# Graph 2: Garage_Cars vs log.price
+ames %>% ggplot(aes(x = Garage_Cars, y = log.price)) +
+  geom_boxplot() +
+  labs(title = "Garage Cars vs Log Price",
+       x = "Garage Car Capacity", 
+       y = "Log Price")
+
+# Graph 3: Garage Area vs log.price
+ames %>% ggplot(aes(x = Garage_Area, y = log.price)) +
+  geom_point(alpha = 0.3) +
+  geom_smooth(method = "lm", color = "red") +
+  labs(title = "Garage Area vs Log Price",
+       x = "Total Garage Area Square Feet", 
+       y = "Log Price")
+```
+
+**Description of relationships:**
+
+1.  **Gr_Liv_Area (Living Area, correlation = 0.696)**: Shows a strong positive relationship with log.price. As living area increases, price increases in a fairly straight line. This makes sense - bigger houses cost more. This is the strongest predictor among the variables we looked at.
+
+2.  **Garage_Cars (Garage Capacity, correlation = 0.675)**: Shows a clear positive relationship where houses with more garage space (more cars that can fit) have higher prices. The boxplot shows that median prices go up as garage capacity increases. This suggests that garage size is an important feature that buyers value.
+
+3.  **Garage_Area (Garage Area, correlation = 0.651)**: Shows a strong positive relationship with log.price. Similar to garage capacity, the actual square footage of the garage is highly predictive of the home price. Larger garages generally correlate with more expensive homes.
+
+## Worrying about empty spaces
+
+Whenever you make a randomForest, you worry about missing data. We'll talk about several ways of doing this, but for now, I'm going to just delete any missing rows. The na.omit command just leaves out anything with missing values. You can also put omit instructions inside of modelling commands, using na.option=na.omit(ames), but if we do it at the start, we'll have the same data set for comparisons later, instead of just making it "on the fly."
+
+```{r omitting}
+ames.omit <- na.omit(ames)
+```
+
+Notice that it actually only omits one property, but that could be important.
+
+## Splitting our data
+
+As we already know, one method of checking for overfitting is to divide our data into two: a "train" set that we'll use to create (or train) a model, and a "test" set that we'll use to check it later.
+
+```{r TestTrain}
+set.seed(20190407)
+ames.train <- ames.omit %>% sample_frac(.65)
+ames.test  <- anti_join(ames.omit, ames.train)
+```
+
+# Start with One Tree
+
+```{r CART}
+ames.tree <- rpart(log.price ~., data=ames.train)
+rpart.plot(ames.tree, tweak=2, faclen=3, box.palette = "Greens")
+ames.tree
+```
+
+This tree works OK, and was made very quickly. The forest will be much slower. Since we're looking at logprice, the values are 2\^11 or 2\^12 or 2\^12. A value of 2\^11 is about \$60,000, 2\^12 is about \$163,000, and 2\^13 is about 440,000. Each increase in the logprice represents a factor of about 2.7 (the value of e) It shows that Overall Quality is important, as is the subclass and the size of the LivingArea, Garage, and Basement. We could do a CV to look deeper, but let's move to the Random Forest.
+
+# A Random Forest to Predict Price
+
+There are two schools of thought concerning inclusion of variables in a random forest. One school of thought suggests it's good to remove variables from the model if those variables are (a) not related very strongly to the response variable, or (b) highly correlated with other predictor variables. This advice is definitely good if you're dealing with regression models.
+
+On the other hand, another school of thought suggests that random forests are actually very good at handling extraneous variables and highly correlated predictor variables. My experience has been that a *large enough and appropriately tuned* random forest model gets better predictive accuracy from including *as many variables as possible*. The trade-off in this approach is that you need to tune model parameters and spend computation time on a data set with more variables.
+
+For now, let's compute a random forest predictor using all our variables and default settings. The `randomForest` command can be run using a similar format to our other predictor commands:
+
+`randomForest(response ~ predictors, data=data.frame)`
+
+The command below will run for a while (sometimes going to get a cup of coffee is an integral part of data science). I commented it out so that a student who knit the document right away wouldn't get a slow-down. Delete the line with the `lm` command, and delete the comment character on the line with the `randomForest` command, and run this chunk now.
+
+```{r FirstForest}
+ames.rf <- randomForest(log.price ~., data=ames.train)
+ames.rf
+```
+
+# Three Measures of Error
+
+How well does the model do at predicting `log.price`? Let's measure it three ways.
+
+## The Wrong Way
+
+We could measure the RMSE of the random forest applied to its original training set. **This is the wrong way to do it**. But, let's try it anyway. Note that the `Metrics` package gives us the `rmse` command to easily compare actual `log.price` to predicted.
+
+```{r WrongRMSE}
+ train.predict <- predict(ames.rf, newdata=ames.train)
+ rmse(ames.train$log.price, train.predict)
+```
+
+## Out-of-Bag Error
+
+Honest measures of prediction error will never measure a prediction model against data that was used to create the model. Using cross-validation or out-of-bag error are both honest ways to use the training set to get a measure of error, but out-of-bag error is the easiest with random forests. You can get out-of-bag error from the default model summary or by printing the last entry of the `mse` field of the model directly. It's not labeled as "out-of-bag error" but it is. Since the `randomForest` procedure gives mean squared error, rather than RMSE, we'll take the square root of the number we got from the randomForest output.
+
+```{r}
+ames.rf
+last(ames.rf$mse)
+sqrt(last(ames.rf$mse))
+```
+
+## Measuring Error with a Test Set
+
+Another honest way to measure prediction error is to apply the model to a separate testing set that wasn't used to create the model. The code below loads in our testing set, applies the same modifications to it, and measures how well our model does with this new data.
+
+```{r}
+test.predictCART <- predict(ames.tree, newdata=ames.test)
+rmse(ames.test$log.price, test.predictCART)
+test.predict <- predict(ames.rf, newdata=ames.test)
+rmse(ames.test$log.price, test.predict)
+```
+
+You can see that the Random Forest totally beat the CART Tree with the test data. Using the Test set gave a similar answer to the OOB, which is handy, since OOB is "free" in a rf model.
+
+### Question 4
+
+Compare these three measures of error. Which match, and which don't? Which are higher and which are lower? Why is that important?
+
+The three error measures show different values. The training RMSE (wrong way) is 0.055, which is the lowest. This is because the model was built using this same data, so it fits it very well i.e overfits. The out-of-bag (OOB) RMSE is 0.136, which is higher. This is an honest estimate because each tree in the random forest only uses part of the training data, so it can test itself on data it hasn't seen. The test set RMSE is 0.141, which is very similar to the OOB RMSE (0.136 vs 0.141).
+
+The OOB and test set RMSE match closely, which is important because it shows that OOB error is a reliable way to estimate how well the model will do on new data, without needing to set aside a separate test set. The training RMSE being much lower (0.055) than the other two (around 0.14) indicates overfitting - the model memorized the training data too well and won't perform as well on new houses. This is why we need honest error measures like OOB or test set RMSE to know how good our model really is.

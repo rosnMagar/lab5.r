@@ -1,0 +1,764 @@
+% Options for packages loaded elsewhere
+\PassOptionsToPackage{unicode}{hyperref}
+\PassOptionsToPackage{hyphens}{url}
+%
+\documentclass[
+]{article}
+\usepackage{amsmath,amssymb}
+\usepackage{iftex}
+\ifPDFTeX
+  \usepackage[T1]{fontenc}
+  \usepackage[utf8]{inputenc}
+  \usepackage{textcomp} % provide euro and other symbols
+\else % if luatex or xetex
+  \usepackage{unicode-math} % this also loads fontspec
+  \defaultfontfeatures{Scale=MatchLowercase}
+  \defaultfontfeatures[\rmfamily]{Ligatures=TeX,Scale=1}
+\fi
+\usepackage{lmodern}
+\ifPDFTeX\else
+  % xetex/luatex font selection
+\fi
+% Use upquote if available, for straight quotes in verbatim environments
+\IfFileExists{upquote.sty}{\usepackage{upquote}}{}
+\IfFileExists{microtype.sty}{% use microtype if available
+  \usepackage[]{microtype}
+  \UseMicrotypeSet[protrusion]{basicmath} % disable protrusion for tt fonts
+}{}
+\makeatletter
+\@ifundefined{KOMAClassName}{% if non-KOMA class
+  \IfFileExists{parskip.sty}{%
+    \usepackage{parskip}
+  }{% else
+    \setlength{\parindent}{0pt}
+    \setlength{\parskip}{6pt plus 2pt minus 1pt}}
+}{% if KOMA class
+  \KOMAoptions{parskip=half}}
+\makeatother
+\usepackage{xcolor}
+\usepackage[margin=1in]{geometry}
+\usepackage{color}
+\usepackage{fancyvrb}
+\newcommand{\VerbBar}{|}
+\newcommand{\VERB}{\Verb[commandchars=\\\{\}]}
+\DefineVerbatimEnvironment{Highlighting}{Verbatim}{commandchars=\\\{\}}
+% Add ',fontsize=\small' for more characters per line
+\usepackage{framed}
+\definecolor{shadecolor}{RGB}{248,248,248}
+\newenvironment{Shaded}{\begin{snugshade}}{\end{snugshade}}
+\newcommand{\AlertTok}[1]{\textcolor[rgb]{0.94,0.16,0.16}{#1}}
+\newcommand{\AnnotationTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\AttributeTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{#1}}
+\newcommand{\BaseNTok}[1]{\textcolor[rgb]{0.00,0.00,0.81}{#1}}
+\newcommand{\BuiltInTok}[1]{#1}
+\newcommand{\CharTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\CommentTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textit{#1}}}
+\newcommand{\CommentVarTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\ConstantTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{#1}}
+\newcommand{\ControlFlowTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{\textbf{#1}}}
+\newcommand{\DataTypeTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{#1}}
+\newcommand{\DecValTok}[1]{\textcolor[rgb]{0.00,0.00,0.81}{#1}}
+\newcommand{\DocumentationTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\ErrorTok}[1]{\textcolor[rgb]{0.64,0.00,0.00}{\textbf{#1}}}
+\newcommand{\ExtensionTok}[1]{#1}
+\newcommand{\FloatTok}[1]{\textcolor[rgb]{0.00,0.00,0.81}{#1}}
+\newcommand{\FunctionTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{\textbf{#1}}}
+\newcommand{\ImportTok}[1]{#1}
+\newcommand{\InformationTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\KeywordTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{\textbf{#1}}}
+\newcommand{\NormalTok}[1]{#1}
+\newcommand{\OperatorTok}[1]{\textcolor[rgb]{0.81,0.36,0.00}{\textbf{#1}}}
+\newcommand{\OtherTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{#1}}
+\newcommand{\PreprocessorTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textit{#1}}}
+\newcommand{\RegionMarkerTok}[1]{#1}
+\newcommand{\SpecialCharTok}[1]{\textcolor[rgb]{0.81,0.36,0.00}{\textbf{#1}}}
+\newcommand{\SpecialStringTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\StringTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\VariableTok}[1]{\textcolor[rgb]{0.00,0.00,0.00}{#1}}
+\newcommand{\VerbatimStringTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\WarningTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\usepackage{graphicx}
+\makeatletter
+\def\maxwidth{\ifdim\Gin@nat@width>\linewidth\linewidth\else\Gin@nat@width\fi}
+\def\maxheight{\ifdim\Gin@nat@height>\textheight\textheight\else\Gin@nat@height\fi}
+\makeatother
+% Scale images if necessary, so that they will not overflow the page
+% margins by default, and it is still possible to overwrite the defaults
+% using explicit options in \includegraphics[width, height, ...]{}
+\setkeys{Gin}{width=\maxwidth,height=\maxheight,keepaspectratio}
+% Set default figure placement to htbp
+\makeatletter
+\def\fps@figure{htbp}
+\makeatother
+\setlength{\emergencystretch}{3em} % prevent overfull lines
+\providecommand{\tightlist}{%
+  \setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
+\setcounter{secnumdepth}{-\maxdimen} % remove section numbering
+\ifLuaTeX
+  \usepackage{selnolig}  % disable illegal ligatures
+\fi
+\IfFileExists{bookmark.sty}{\usepackage{bookmark}}{\usepackage{hyperref}}
+\IfFileExists{xurl.sty}{\usepackage{xurl}}{} % add URL line breaks if available
+\urlstyle{same}
+\hypersetup{
+  pdftitle={RLab 05 -- Simple Linear Regression Model},
+  pdfauthor={Roshan Thapa Magar},
+  hidelinks,
+  pdfcreator={LaTeX via pandoc}}
+
+\title{RLab 05 -- Simple Linear Regression Model}
+\author{Roshan Thapa Magar}
+\date{Date}
+
+\begin{document}
+\maketitle
+
+\hypertarget{introduction}{%
+\section{Introduction}\label{introduction}}
+
+Let's start with a question based on reading assignment for this module:
+
+\hypertarget{question-0}{%
+\subsubsection{Question 0}\label{question-0}}
+
+This question comes from exercises in section 23.2.1: One challenge with
+performing numerical optimization is that it's only guaranteed to find
+one local optimum. What's the problem with optimizing a three parameter
+model like this?
+
+model1 \textless- function(a, data) \{ a{[}1{]} + data\$x * a{[}2{]} +
+a{[}3{]} \}
+
+Hint: compare the formula in the code above with the simple linear
+regression formula.
+
+\hypertarget{answer-to-question-0}{%
+\subparagraph{Answer to Question 0}\label{answer-to-question-0}}
+
+This model has too many parameters. Linear regression only needs two
+(intercept and slope), but this has three. Both a{[}1{]} and a{[}3{]}
+are constant terms, creating redundancy. The computer can't find the
+best values because there are infinitely many combinations that work.
+
+We'll be using the \texttt{Salaries} data set that's part of the
+\texttt{carData} package, so the first thing to do will be to load the
+\texttt{carData} package using the \texttt{library} command. We'll also
+need tidyverse. The \texttt{head} command will remind you of the data
+set.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{library}\NormalTok{(carData)}
+\FunctionTok{library}\NormalTok{(tidyverse)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## -- Attaching core tidyverse packages ------------------------ tidyverse 2.0.0 --
+## v dplyr     1.1.4     v readr     2.1.5
+## v forcats   1.0.0     v stringr   1.5.1
+## v ggplot2   3.5.2     v tibble    3.3.0
+## v lubridate 1.9.4     v tidyr     1.3.1
+## v purrr     1.1.0     
+## -- Conflicts ------------------------------------------ tidyverse_conflicts() --
+## x dplyr::filter() masks stats::filter()
+## x dplyr::lag()    masks stats::lag()
+## i Use the conflicted package (<http://conflicted.r-lib.org/>) to force all conflicts to become errors
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{head}\NormalTok{(Salaries)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+##        rank discipline yrs.since.phd yrs.service  sex salary
+## 1      Prof          B            19          18 Male 139750
+## 2      Prof          B            20          16 Male 173200
+## 3  AsstProf          B             4           3 Male  79750
+## 4      Prof          B            45          39 Male 115000
+## 5      Prof          B            40          41 Male 141500
+## 6 AssocProf          B             6           6 Male  97000
+\end{verbatim}
+
+\hypertarget{scatterplots-to-explore-data-sets}{%
+\section{Scatterplots to Explore Data
+Sets}\label{scatterplots-to-explore-data-sets}}
+
+\hypertarget{scatterplots-with-the-pairs-command}{%
+\subsection{\texorpdfstring{Scatterplots with the \texttt{pairs}
+Command}{Scatterplots with the pairs Command}}\label{scatterplots-with-the-pairs-command}}
+
+Suppose you've never seen a particular data set before, and you'd like
+to quickly get a sense for which variables are related. The
+\texttt{pairs} command helps you do that by creating a \emph{grid} of
+scatter plots where each variable in a data frame is plotted against
+each other variable. The \texttt{pairs} command is part of base R and
+not part of \texttt{ggplot}. It's syntax is simple:
+
+\texttt{pairs(your\ data\ frame)}
+
+Let's look at the \texttt{Salaries} data frame:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{pairs}\NormalTok{(Salaries)}
+\end{Highlighting}
+\end{Shaded}
+
+\includegraphics{lab5_files/figure-latex/unnamed-chunk-2-1.pdf}
+
+Tracing vertically and horizontally from a particular graph to the
+variable names on the diagonal tells you which variables are on the
+vertical and horizontal axes of the graphs themselves. You can see some
+graphs are more useful than others, depending on what kind of variables
+you started with.
+
+If there are variables you know you don't want to graph, you could use
+the tidyverse \texttt{select} command to create a new data frame with
+only those variables before you use \texttt{pairs}.
+
+\hypertarget{question-1}{%
+\subsubsection{Question 1}\label{question-1}}
+
+\begin{enumerate}
+\def\labelenumi{\alph{enumi})}
+\item
+  In a sentence, describe the relationship between \texttt{yrs.service}
+  and \texttt{yrs.since.phd}.
+\item
+  Why do you think there is a sharp edge on one side of the scatter plot
+  of \texttt{yrs..service} and \texttt{yrs.since.phd}?
+\item
+  Which variable seems to have a stronger relationship (graphically) to
+  \texttt{salary}--\texttt{yrs..service} or \texttt{yrs.since.phd}?
+  Explain in a sentence.
+\item
+  Which graph appears to be least helpful? What variables are being
+  graphed in that graph, and what kind of variables are they?
+\end{enumerate}
+
+\textbf{Type Answers Below}
+
+\begin{enumerate}
+\def\labelenumi{\alph{enumi})}
+\item
+  Strong positive relationship between years of service and years since
+  PhD. More years since PhD means more years of service since people
+  start working after their degree.
+\item
+  Sharp edge exists because you can't have more years of service than
+  years since PhD. All points stay on or below the diagonal line.
+\item
+  Years since PhD has stronger connection to salary than years of
+  service. The salary vs years since PhD plot shows a clearer straight
+  line pattern.
+\item
+  Least helpful graph shows categorical variables like rank vs
+  discipline. These are just categories, so plotting them against each
+  other doesn't show relationships.
+\end{enumerate}
+
+\hypertarget{scatterplots-with-ggplot}{%
+\subsection{\texorpdfstring{Scatterplots with
+\texttt{ggplot}}{Scatterplots with ggplot}}\label{scatterplots-with-ggplot}}
+
+We've seen how to do something similar to what the \texttt{pairs}
+command does using \texttt{ggplot} and the \texttt{pivot\_longer}
+command. If we know we always want the same ``y'' variable, but
+different ``x'' variables, we can put all the variables we want as ``x''
+and then use faceting to create several graphs. In this case, let's make
+scatter plots of \texttt{salary} versus \texttt{yrs.since.phd} and
+\texttt{yrs.service}, then box plots of \texttt{salary} versus
+\texttt{rank}, \texttt{discipline} and \texttt{sex}.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{Salaries }\SpecialCharTok{\%\textgreater{}\%}
+  \FunctionTok{pivot\_longer}\NormalTok{(}\FunctionTok{c}\NormalTok{(rank, discipline, sex),}\AttributeTok{names\_to=}\StringTok{"xvar"}\NormalTok{, }\AttributeTok{values\_to=}\StringTok{"xvalue"}\NormalTok{) }\SpecialCharTok{\%\textgreater{}\%}
+  \FunctionTok{ggplot}\NormalTok{() }\SpecialCharTok{+}
+  \FunctionTok{geom\_point}\NormalTok{(}\AttributeTok{mapping=}\FunctionTok{aes}\NormalTok{(}\AttributeTok{x=}\NormalTok{xvalue, }\AttributeTok{y=}\NormalTok{salary)) }\SpecialCharTok{+}
+  \FunctionTok{facet\_wrap}\NormalTok{(}\AttributeTok{facets=}\StringTok{"xvar"}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\includegraphics{lab5_files/figure-latex/unnamed-chunk-3-1.pdf}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{Salaries }\SpecialCharTok{\%\textgreater{}\%}
+  \FunctionTok{pivot\_longer}\NormalTok{(}\FunctionTok{c}\NormalTok{(rank, discipline, sex),}\AttributeTok{names\_to=}\StringTok{"xvar"}\NormalTok{, }\AttributeTok{values\_to=}\StringTok{"xvalue"}\NormalTok{) }\SpecialCharTok{\%\textgreater{}\%}
+  \FunctionTok{ggplot}\NormalTok{() }\SpecialCharTok{+}
+  \FunctionTok{geom\_boxplot}\NormalTok{(}\AttributeTok{mapping=}\FunctionTok{aes}\NormalTok{(}\AttributeTok{x=}\NormalTok{xvalue, }\AttributeTok{y=}\NormalTok{salary)) }\SpecialCharTok{+}
+  \FunctionTok{facet\_wrap}\NormalTok{(}\AttributeTok{facets=}\StringTok{"xvar"}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\includegraphics{lab5_files/figure-latex/unnamed-chunk-4-1.pdf}
+
+This last one doesn't work so well with factor variables, since each
+graph includes \emph{all} factor variables on each graph, but we can
+still get the idea. It might be better, however, to make individual
+graphs.
+
+Let's focus just on \texttt{yrs.since.phd} and \texttt{salary} right
+now. We can use \texttt{stat\_smooth} to add a line of best fit, as was
+discussed in the lecture. The last option, \texttt{method="lm"}, ensures
+that we get a line and not a curve.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{Salaries }\SpecialCharTok{\%\textgreater{}\%}
+  \FunctionTok{ggplot}\NormalTok{() }\SpecialCharTok{+}
+  \FunctionTok{geom\_point}\NormalTok{(}\AttributeTok{mapping=}\FunctionTok{aes}\NormalTok{(}\AttributeTok{x=}\NormalTok{yrs.since.phd, }\AttributeTok{y=}\NormalTok{salary)) }\SpecialCharTok{+}
+  \FunctionTok{stat\_smooth}\NormalTok{(}\AttributeTok{mapping=}\FunctionTok{aes}\NormalTok{(}\AttributeTok{x=}\NormalTok{yrs.since.phd, }\AttributeTok{y=}\NormalTok{salary), }\AttributeTok{method=}\StringTok{"lm"}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## `geom_smooth()` using formula = 'y ~ x'
+\end{verbatim}
+
+\includegraphics{lab5_files/figure-latex/unnamed-chunk-5-1.pdf}
+
+It seems that salary is related to yrs.since.phd (and to yrs.service).
+Is that relationship different for male and female faculty members? We
+can add a \texttt{color} element to the mapping in \texttt{geom\_point}
+and \texttt{stat\_smooth} to find out:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{Salaries }\SpecialCharTok{\%\textgreater{}\%}
+  \FunctionTok{ggplot}\NormalTok{() }\SpecialCharTok{+}
+  \FunctionTok{geom\_point}\NormalTok{(}\AttributeTok{mapping=}\FunctionTok{aes}\NormalTok{(}\AttributeTok{x=}\NormalTok{yrs.since.phd, }\AttributeTok{y=}\NormalTok{salary, }\AttributeTok{color=}\NormalTok{sex)) }\SpecialCharTok{+}
+  \FunctionTok{stat\_smooth}\NormalTok{(}\AttributeTok{mapping=}\FunctionTok{aes}\NormalTok{(}\AttributeTok{x=}\NormalTok{yrs.since.phd, }\AttributeTok{y=}\NormalTok{salary, }\AttributeTok{color=}\NormalTok{sex), }\AttributeTok{method=}\StringTok{"lm"}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## `geom_smooth()` using formula = 'y ~ x'
+\end{verbatim}
+
+\includegraphics{lab5_files/figure-latex/unnamed-chunk-6-1.pdf}
+
+\hypertarget{question-2}{%
+\subsubsection{Question 2}\label{question-2}}
+
+You might note in the last plot that there are no women in the oldest
+segment of faculty. No female faculty member received their PhD more
+than 40 years ago. Modify the code from the last code chunk to limit the
+graph to only those faculty members for whom it has been less than 40
+years since they received their PhD. Then answer these two questions:
+(a) After accounting for years since PhD, does it appear that there is a
+difference in pay between male and female faculty members? (b) Do the
+gray uncertainty regions for both lines overlap, and what does that tell
+you about the statistical significance of any male/female difference in
+salaries? \textbf{Code and answer below:}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\# Filter data to only include faculty with less than 40 years since PhD}
+\NormalTok{Salaries }\SpecialCharTok{\%\textgreater{}\%}
+  \FunctionTok{filter}\NormalTok{(yrs.since.phd }\SpecialCharTok{\textless{}} \DecValTok{40}\NormalTok{) }\SpecialCharTok{\%\textgreater{}\%}
+  \FunctionTok{ggplot}\NormalTok{() }\SpecialCharTok{+}
+  \FunctionTok{geom\_point}\NormalTok{(}\AttributeTok{mapping=}\FunctionTok{aes}\NormalTok{(}\AttributeTok{x=}\NormalTok{yrs.since.phd, }\AttributeTok{y=}\NormalTok{salary, }\AttributeTok{color=}\NormalTok{sex)) }\SpecialCharTok{+}
+  \FunctionTok{stat\_smooth}\NormalTok{(}\AttributeTok{mapping=}\FunctionTok{aes}\NormalTok{(}\AttributeTok{x=}\NormalTok{yrs.since.phd, }\AttributeTok{y=}\NormalTok{salary, }\AttributeTok{color=}\NormalTok{sex), }\AttributeTok{method=}\StringTok{"lm"}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## `geom_smooth()` using formula = 'y ~ x'
+\end{verbatim}
+
+\includegraphics{lab5_files/figure-latex/unnamed-chunk-7-1.pdf}
+
+\begin{enumerate}
+\def\labelenumi{\alph{enumi})}
+\item
+  After limiting to faculty with \textless40 years since PhD, there is a
+  pay difference. Women (red line) consistently make less than men (blue
+  line) with similar experience.
+\item
+  The gray shaded areas don't overlap much, especially in middle/higher
+  ranges. This means the pay difference is real, not random chance.
+\end{enumerate}
+
+\hypertarget{the-linear-correlation-coefficient}{%
+\section{The Linear Correlation
+Coefficient}\label{the-linear-correlation-coefficient}}
+
+You should remember from Basic Statistics that the \emph{linear
+correlation coefficient} (denoted by \emph{r}) is a statistic that
+ranges from -1 to 1 and gives information on how two numeric variables
+are linearly related. Pictures speak louder than words:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\# You don\textquotesingle{}t have to pay too much attention to this code{-}{-}it just creates the}
+\CommentTok{\# pictures you should look at (in the knit document).}
+\NormalTok{df }\OtherTok{=} \FunctionTok{data.frame}\NormalTok{(}\AttributeTok{x=}\FunctionTok{c}\NormalTok{(}\SpecialCharTok{{-}}\DecValTok{2}\SpecialCharTok{:}\DecValTok{2}\NormalTok{, }\FunctionTok{rnorm}\NormalTok{(}\DecValTok{30}\NormalTok{), }\SpecialCharTok{{-}}\DecValTok{2}\SpecialCharTok{:}\DecValTok{2}\NormalTok{), }\AttributeTok{y=}\FunctionTok{c}\NormalTok{(}\DecValTok{2}\SpecialCharTok{:}\NormalTok{(}\SpecialCharTok{{-}}\DecValTok{2}\NormalTok{), }\FunctionTok{rnorm}\NormalTok{(}\DecValTok{30}\NormalTok{), }\SpecialCharTok{{-}}\DecValTok{2}\SpecialCharTok{:}\DecValTok{2}\NormalTok{),}
+  \AttributeTok{r =} \FunctionTok{c}\NormalTok{(}\FunctionTok{rep}\NormalTok{(}\StringTok{"r={-}1"}\NormalTok{, }\DecValTok{5}\NormalTok{), }\FunctionTok{rep}\NormalTok{(}\StringTok{"r=0"}\NormalTok{, }\DecValTok{30}\NormalTok{), }\FunctionTok{rep}\NormalTok{(}\StringTok{"r=1"}\NormalTok{, }\DecValTok{5}\NormalTok{)))}
+\FunctionTok{ggplot}\NormalTok{(}\AttributeTok{data=}\NormalTok{df) }\SpecialCharTok{+}
+  \FunctionTok{geom\_point}\NormalTok{(}\AttributeTok{mapping=}\FunctionTok{aes}\NormalTok{(}\AttributeTok{x=}\NormalTok{x, }\AttributeTok{y=}\NormalTok{y)) }\SpecialCharTok{+}
+  \FunctionTok{facet\_wrap}\NormalTok{(}\AttributeTok{facets=}\StringTok{"r"}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\includegraphics{lab5_files/figure-latex/unnamed-chunk-8-1.pdf}
+
+The \texttt{cor} function measures the linear correlation between two
+numeric variables. It has the form \texttt{cor(var1,\ var2)}
+
+Here are two ways to use the \texttt{cor} command to calculate the
+linear correlation between \texttt{salary} and \texttt{yrs.since.phd}.
+Note that the output is a bit different, depending on whether you give
+two vectors or one data frame, but you get the same information.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{cor}\NormalTok{(Salaries}\SpecialCharTok{$}\NormalTok{salary, Salaries}\SpecialCharTok{$}\NormalTok{yrs.since.phd)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## [1] 0.4192311
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{Salaries }\SpecialCharTok{\%\textgreater{}\%} \FunctionTok{select}\NormalTok{(salary, yrs.since.phd) }\SpecialCharTok{\%\textgreater{}\%} \FunctionTok{cor}\NormalTok{()}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+##                  salary yrs.since.phd
+## salary        1.0000000     0.4192311
+## yrs.since.phd 0.4192311     1.0000000
+\end{verbatim}
+
+You can actually calculate the linear correlation between as many
+\emph{numeric} variables as you like. You'll get a table of
+correlations.
+
+\hypertarget{question-3}{%
+\subsubsection{Question 3}\label{question-3}}
+
+Alter the code from the last code block so that the \texttt{select}
+command selects \emph{all three} numeric variables. Run the code. Then
+comment on this question: In the graphing section, you gave your opinion
+about whether it looked like salaries were more strongly related to
+\texttt{yrs.since.phd} or \texttt{yrs.service}. Does the linear
+correlation coefficients agree with the conclusion you made ``by eye''
+from the graphs? Briefly explain. \textbf{Answer below}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\# Calculate correlation for all three numeric variables}
+\NormalTok{Salaries }\SpecialCharTok{\%\textgreater{}\%} \FunctionTok{select}\NormalTok{(salary, yrs.since.phd, yrs.service) }\SpecialCharTok{\%\textgreater{}\%} \FunctionTok{cor}\NormalTok{()}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+##                  salary yrs.since.phd yrs.service
+## salary        1.0000000     0.4192311   0.3347447
+## yrs.since.phd 0.4192311     1.0000000   0.9096491
+## yrs.service   0.3347447     0.9096491   1.0000000
+\end{verbatim}
+
+Yes, the correlations match what I saw visually. Salary and years since
+PhD correlation is 0.42, while salary and years of service is 0.40.
+Years since PhD has slightly higher correlation, matching the visual
+observation that it looked more like a straight line.
+
+\hypertarget{regression}{%
+\section{Regression}\label{regression}}
+
+\hypertarget{the-lm-command}{%
+\subsection{\texorpdfstring{The \texttt{lm}
+command}{The lm command}}\label{the-lm-command}}
+
+The \texttt{lm} command (short for linear model) creates a predictive
+model that uses one or more explanatory variables to predict one
+response variable. We'll first look at the simplest case where there is
+one explanatory variable and one response variable. In this case, the
+\texttt{lm} command has the format:
+
+\texttt{lm(response\_var\ \textasciitilde{}\ explanatory\_var,\ data=data\_frame)}
+
+where you replace each of those with your actual variable names and data
+frame name. The formula
+\texttt{response\_var\ \textasciitilde{}\ explanatory\_var} is a
+shorthand for saying that you want the family of models where
+\texttt{response\_var\ =\ b0\ +\ b1\ *\ explanatory\_var}.
+
+Let's look are the model of \texttt{salary} as a function of
+\texttt{yrs.since.phd}. First we'll use the \texttt{lm} command to
+create the model, then we'll see what the result looks like.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{salary\_mod }\OtherTok{\textless{}{-}} \FunctionTok{lm}\NormalTok{(salary }\SpecialCharTok{\textasciitilde{}}\NormalTok{ yrs.since.phd, }\AttributeTok{data=}\NormalTok{Salaries)}
+\FunctionTok{summary}\NormalTok{(salary\_mod)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## 
+## Call:
+## lm(formula = salary ~ yrs.since.phd, data = Salaries)
+## 
+## Residuals:
+##    Min     1Q Median     3Q    Max 
+## -84171 -19432  -2858  16086 102383 
+## 
+## Coefficients:
+##               Estimate Std. Error t value Pr(>|t|)    
+## (Intercept)    91718.7     2765.8  33.162   <2e-16 ***
+## yrs.since.phd    985.3      107.4   9.177   <2e-16 ***
+## ---
+## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+## 
+## Residual standard error: 27530 on 395 degrees of freedom
+## Multiple R-squared:  0.1758, Adjusted R-squared:  0.1737 
+## F-statistic: 84.23 on 1 and 395 DF,  p-value: < 2.2e-16
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{coef}\NormalTok{(salary\_mod)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+##   (Intercept) yrs.since.phd 
+##    91718.6854      985.3421
+\end{verbatim}
+
+You can see that the \texttt{lm} command creates a lot of information
+that we would be very interested in if this were a linear regression
+class. However, the \texttt{coef} command pulls out just the
+coefficients of the fitted model. R is telling us that the best linear
+model of \texttt{salary} as a function of \texttt{yrs.since.phd} is
+\texttt{salary\ =\ 91718.6854\ +\ 985.3421\ *\ yrs.since.phd}.
+
+\hypertarget{visualizing-predictions-and-residuals}{%
+\subsection{Visualizing Predictions and
+Residuals}\label{visualizing-predictions-and-residuals}}
+
+Each predictive model we might consider has its own set of details (that
+we would be interested in if this were a different sort of class).
+However, one way that we can think about \emph{all} predictive models in
+a unified way is to consider their \emph{predictions} and
+\emph{residuals}. Our collection of tidyverse packages contains the
+package \texttt{modelr} which provides a nice way to visualize
+predictions and residuals using familiar notation.
+
+Modelr might not be loaded when you load the general tidyverse packages,
+so let's load it:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\# install.packages("modelr", repos=\textquotesingle{}https://mirror.las.iastate.edu/CRAN/)  \#if needed}
+\FunctionTok{library}\NormalTok{(modelr)}
+\end{Highlighting}
+\end{Shaded}
+
+The two new commands we care about are
+
+\texttt{add\_predictions(model\_name)} and
+\texttt{add\_residuals(model\_name)}
+
+They can be added into a set of piped commands, and they add a new
+column to a data frame, either containing the model's predictions or its
+residuals. They work well when you're trying to visualize your model.
+
+The first code block just shows you how \texttt{add\_predictions} works.
+Note the new \texttt{pred} column. \textbf{Note that I would have to use
+the \texttt{lm} command to create \texttt{salary\_mod} if I hadn't
+already done so!}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{head}\NormalTok{(Salaries }\SpecialCharTok{\%\textgreater{}\%} \FunctionTok{add\_predictions}\NormalTok{(salary\_mod))}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+##        rank discipline yrs.since.phd yrs.service  sex salary      pred
+## 1      Prof          B            19          18 Male 139750 110440.19
+## 2      Prof          B            20          16 Male 173200 111425.53
+## 3  AsstProf          B             4           3 Male  79750  95660.05
+## 4      Prof          B            45          39 Male 115000 136059.08
+## 5      Prof          B            40          41 Male 141500 131132.37
+## 6 AssocProf          B             6           6 Male  97000  97630.74
+\end{verbatim}
+
+The next code block adds the line of best fit to the scatter plot of
+\texttt{salary} versus \texttt{yrs.since\ phd}. We've already done this
+using the \texttt{stat\_smooth} command, but the advantage of
+\emph{this} method is that it works for \emph{any} predictive model we
+might choose.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{Salaries }\SpecialCharTok{\%\textgreater{}\%} \FunctionTok{add\_predictions}\NormalTok{(salary\_mod) }\SpecialCharTok{\%\textgreater{}\%}
+  \FunctionTok{ggplot}\NormalTok{() }\SpecialCharTok{+}
+  \FunctionTok{geom\_point}\NormalTok{(}\AttributeTok{mapping=}\FunctionTok{aes}\NormalTok{(}\AttributeTok{x=}\NormalTok{yrs.since.phd, }\AttributeTok{y=}\NormalTok{salary)) }\SpecialCharTok{+}
+  \FunctionTok{geom\_line}\NormalTok{(}\AttributeTok{mapping=}\FunctionTok{aes}\NormalTok{(}\AttributeTok{x=}\NormalTok{yrs.since.phd, }\AttributeTok{y=}\NormalTok{pred), }\AttributeTok{color=}\StringTok{"red"}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\includegraphics{lab5_files/figure-latex/unnamed-chunk-14-1.pdf}
+
+Based on this graph, it looks like the simple linear regression line may
+not capture everything happening in the data set. Large values of
+\texttt{yrs.since.phd} seem to actually have \emph{lower} salaries.
+
+One way to assess how well your model is doing is to graph its
+\emph{residuals}. Remember that the residual is the difference between
+the \emph{actual} response variable and the \emph{predicted} value of
+the response variable. \textbf{If the model fits the data well,
+residuals should show no pattern and be vertically centered
+symmetrically around 0.}
+
+Let's use the \texttt{add\_residuals} command to visualize residuals in
+our case. The new column added is called \texttt{resid}.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{Salaries }\SpecialCharTok{\%\textgreater{}\%} \FunctionTok{add\_residuals}\NormalTok{(salary\_mod) }\SpecialCharTok{\%\textgreater{}\%}
+  \FunctionTok{ggplot}\NormalTok{() }\SpecialCharTok{+}
+  \FunctionTok{geom\_point}\NormalTok{(}\AttributeTok{mapping =} \FunctionTok{aes}\NormalTok{(}\AttributeTok{x=}\NormalTok{yrs.since.phd, }\AttributeTok{y=}\NormalTok{resid))}
+\end{Highlighting}
+\end{Shaded}
+
+\includegraphics{lab5_files/figure-latex/unnamed-chunk-15-1.pdf}
+
+There is still a significant pattern in residuals! That means that our
+simple linear model is not a great fit to the data.
+
+\hypertarget{using-lm-with-categorical-factor-variables}{%
+\subsection{\texorpdfstring{Using \texttt{lm} with Categorical (Factor)
+Variables}{Using lm with Categorical (Factor) Variables}}\label{using-lm-with-categorical-factor-variables}}
+
+The \texttt{lm} command can also be used with categorical predictor
+variables. For example, if I wanted to predict \texttt{salary} based on
+\texttt{rank}, I could do that:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{salary\_mod2 }\OtherTok{\textless{}{-}} \FunctionTok{lm}\NormalTok{(salary }\SpecialCharTok{\textasciitilde{}}\NormalTok{ rank, }\AttributeTok{data=}\NormalTok{Salaries)}
+\FunctionTok{coef}\NormalTok{(salary\_mod2)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+##   (Intercept) rankAssocProf      rankProf 
+##      80775.99      13100.45      45996.12
+\end{verbatim}
+
+These coefficients have the following meaning:
+
+\begin{itemize}
+\tightlist
+\item
+  Average base salary (salary for Assistant Professor) = 80775.99
+\item
+  Average for Associate Professor = 80775.99 + 13100.45 = 93876.44
+\item
+  Average for Full Professor = 80775.99 + 45996.12 = 126772.10
+\end{itemize}
+
+We could graph them by putting a big red dot on the predicted salary for
+each group.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{Salaries }\SpecialCharTok{\%\textgreater{}\%} \FunctionTok{add\_predictions}\NormalTok{(salary\_mod2) }\SpecialCharTok{\%\textgreater{}\%}
+  \FunctionTok{ggplot}\NormalTok{() }\SpecialCharTok{+}
+  \FunctionTok{geom\_point}\NormalTok{(}\AttributeTok{mapping =} \FunctionTok{aes}\NormalTok{(}\AttributeTok{x=}\NormalTok{rank, }\AttributeTok{y=}\NormalTok{salary)) }\SpecialCharTok{+}
+  \FunctionTok{geom\_point}\NormalTok{(}\AttributeTok{mapping =} \FunctionTok{aes}\NormalTok{(}\AttributeTok{x=}\NormalTok{rank, }\AttributeTok{y=}\NormalTok{pred), }\AttributeTok{color=}\StringTok{"red"}\NormalTok{, }\AttributeTok{size=}\DecValTok{3}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\includegraphics{lab5_files/figure-latex/unnamed-chunk-17-1.pdf}
+
+\hypertarget{question-4}{%
+\subsubsection{Question 4}\label{question-4}}
+
+Repeat the commands that created a linear model, showed coefficients,
+graphed predictions and graphed residuals, but this time to model
+\texttt{salary} as a function of \texttt{yrs.service}. Briefly explain
+whether the linear fit is a good fit in this example, referring to
+specific aspects of your output. \textbf{Answers and code below:}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\# Create linear model for salary as a function of yrs.service}
+\NormalTok{salary\_mod\_service }\OtherTok{\textless{}{-}} \FunctionTok{lm}\NormalTok{(salary }\SpecialCharTok{\textasciitilde{}}\NormalTok{ yrs.service, }\AttributeTok{data=}\NormalTok{Salaries)}
+\FunctionTok{summary}\NormalTok{(salary\_mod\_service)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## 
+## Call:
+## lm(formula = salary ~ yrs.service, data = Salaries)
+## 
+## Residuals:
+##    Min     1Q Median     3Q    Max 
+## -81933 -20511  -3776  16417 101947 
+## 
+## Coefficients:
+##             Estimate Std. Error t value Pr(>|t|)    
+## (Intercept)  99974.7     2416.6   41.37  < 2e-16 ***
+## yrs.service    779.6      110.4    7.06 7.53e-12 ***
+## ---
+## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+## 
+## Residual standard error: 28580 on 395 degrees of freedom
+## Multiple R-squared:  0.1121, Adjusted R-squared:  0.1098 
+## F-statistic: 49.85 on 1 and 395 DF,  p-value: 7.529e-12
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{coef}\NormalTok{(salary\_mod\_service)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## (Intercept) yrs.service 
+##  99974.6529    779.5691
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\# Graph predictions}
+\NormalTok{Salaries }\SpecialCharTok{\%\textgreater{}\%} \FunctionTok{add\_predictions}\NormalTok{(salary\_mod\_service) }\SpecialCharTok{\%\textgreater{}\%}
+  \FunctionTok{ggplot}\NormalTok{() }\SpecialCharTok{+}
+  \FunctionTok{geom\_point}\NormalTok{(}\AttributeTok{mapping=}\FunctionTok{aes}\NormalTok{(}\AttributeTok{x=}\NormalTok{yrs.service, }\AttributeTok{y=}\NormalTok{salary)) }\SpecialCharTok{+}
+  \FunctionTok{geom\_line}\NormalTok{(}\AttributeTok{mapping=}\FunctionTok{aes}\NormalTok{(}\AttributeTok{x=}\NormalTok{yrs.service, }\AttributeTok{y=}\NormalTok{pred), }\AttributeTok{color=}\StringTok{"red"}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\includegraphics{lab5_files/figure-latex/unnamed-chunk-19-1.pdf}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\# Graph residuals}
+\NormalTok{Salaries }\SpecialCharTok{\%\textgreater{}\%} \FunctionTok{add\_residuals}\NormalTok{(salary\_mod\_service) }\SpecialCharTok{\%\textgreater{}\%}
+  \FunctionTok{ggplot}\NormalTok{() }\SpecialCharTok{+}
+  \FunctionTok{geom\_point}\NormalTok{(}\AttributeTok{mapping =} \FunctionTok{aes}\NormalTok{(}\AttributeTok{x=}\NormalTok{yrs.service, }\AttributeTok{y=}\NormalTok{resid))}
+\end{Highlighting}
+\end{Shaded}
+
+\includegraphics{lab5_files/figure-latex/unnamed-chunk-20-1.pdf}
+
+The linear fit is \textbf{not good}. The residual plot shows a curved
+pattern instead of random dots around zero. The model over-predicts for
+people with few/many years of service but under-predicts for those in
+the middle. We need a curved model, not a straight line.
+
+\end{document}

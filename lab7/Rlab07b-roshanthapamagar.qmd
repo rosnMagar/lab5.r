@@ -1,0 +1,329 @@
+---
+title: "RLab 07b – CART Model (part 2)"
+author: "Roshan Thapa Magar"
+date: today
+format: pdf
+output-file: "RLab07b-roshanthapamagar"
+output-ext: "pdf"
+editor: source
+---
+
+# Introduction
+
+This is a continuation of the first part of the last lab. To do this lab, you'll need to know the `cp` value you found at the end of the last lab to minimize CV-CE.
+
+First we'll reload libraries and data. Add or subtract hashtags as you need to.
+
+```{r start}
+# Note the set.seed command to ensure repeatability on our randomness.
+set.seed(4239857)
+library(tidyverse)
+#install.packages is not included here, since you downloaded things in 07a
+library(cvTools)
+library(rpart)
+library(rpart.plot)
+library(Metrics)
+# Load the file straight from the web site:
+# wine <- read.csv("http://archive.ics.uci.edu/ml/machine-learning-databases/wine-quality/winequality-red.csv", sep=";")
+wine <- read.csv("https://raw.githubusercontent.com/shrikant-temburwar/Wine-Quality-Dataset/master/winequality-red.csv", sep=";")
+# Code to load the file locally instead. You don't need both.
+# wine <- read.csv("winequality-red.csv", sep=";")
+# You do have to read the wine file somehow, or else this part of the lab won't knit.
+names(wine)
+```
+
+In this wine data, we've made a questionable assumption. We've treated quality as a categorical variable, because it only takes on a few discrete values (3, 4, 5, 6, 7, 8). It *might* be better to treat it as a numeric variable in terms of prediction.
+
+\*\*Note: The fact that I'm using the same data set to demonstrate both numeric and categorical predictors is possible because of the specific nature of this data set. Normally, only one or the other would be appropriate.
+
+Now let's make a *tree* for quality treated as a numeric variable. The syntax isn't any different.
+
+```{r wineCatTree}
+fit.rpart <- rpart(quality ~ ., data=wine)
+prp(fit.rpart)
+#better graph?
+```
+
+### Question 1
+
+Take a look at the tree diagram above. Trees are often human-understandable. What can you say about the apparent relationship between alcohol and quality category? How about volatile.acidity and overall quality ratings? **Answer below:**
+
+**Answer to Question 1:**
+
+Looking at the tree diagram, alcohol is the most important variable - it's the first split in the tree. Wines with alcohol \< 11 are predicted to have lower quality ratings, while wines with alcohol \>= 11 are predicted to have higher quality ratings. This shows a clear positive relationship between alcohol content and quality - higher alcohol wines tend to receive better quality ratings.
+
+Volatile acidity appears later in the tree structure. For wines with alcohol \>= 11 and sulphates \< 0.65, wines with volatile acidity \< 1 are predicted to have higher quality than those with volatile acidity \>= 1. This suggests that volatile acidity has a negative relationship with quality - higher levels of volatile acidity are associated with lower quality ratings.
+
+It is as easy to get a printout in text form for this model as it was for the *classification tree* model but it will tell you almost the same things except for the error:
+
+-   Numbering and indentation represents the nesting of branches in the tree.
+-   Branches marked with asterisks are final branches at the bottom of the tree.
+-   For each branch, you'll get four pieces of information
+    -   The logical expression that defines the branch.
+    -   The number of data points that go into that branch.
+    -   The *mean squared error* for data points in that branch (without the square root).
+    -   The predicted value of y for that branch.
+
+You probably won't have to use this output very much, but here it is:
+
+```{r LotsOfOutput}
+fit.rpart
+```
+
+### Question 2
+
+Two branches at the second level of the plot should be `sulphates < 0.575` and `sulphates < 0.645`. We know that the CART method only makes one division at a time. Based on the text output, which of the two splits was made first by the algorithm? **Answer below:**
+
+**Answer to Question 2:**
+
+Looking at the text output, the split `sulphates < 0.575` appears at node 4, which is a child of node 2 (alcohol \< 10.525). The split `sulphates < 0.645` appears at node 6, which is a child of node 3 (alcohol \>= 10.525). Since both are at the second level but on different branches of the first split, they were made at the same time (after the first alcohol split). However, if we consider the order in which they appear in the output, `sulphates < 0.575` (node 4) appears before `sulphates < 0.645` (node 6), so `sulphates < 0.575` was processed first by the algorithm.
+
+### Question 3
+
+If the CART algorithm had stopped sooner, you might have had a *single* end node for all data points that had `alcohol >= 10.53`, `sulphates < 0.645` and `volatile.acidity < 1.015`. Based on the text output, what would have been the predicted quality for such wines? **Answer below:**
+
+**Answer to Question 3:**
+
+Looking at the text output, node 13 matches these conditions: it has `alcohol>=10.525`, `sulphates<0.645`, and `volatile.acidity<1.015`. The predicted quality (yval) for this node is **5.793893**, which represents the mean quality value for the 262 wines in that node.
+
+### Question 4
+
+In the text output of the CART model `deviance` represents the RMSE for the node (which is effectively sum of the squared differences between the actual quality and predicted quality of all wines in the node). The reduction in this number, measured as a difference between the deviance before passing through the node and after, also means an improvement in the purity of the groups after the split. Consider the first split (the first node with the condition alcohol\<10.525) and calculate the reduction in the deviance due to passing through this split. **Answer below:**
+
+**Answer to Question 4:**
+
+Looking at the first split (alcohol \< 10.525): - Root node (node 1): deviance = 1042.165, n = 1599 - Left branch (node 2, alcohol \< 10.525): deviance = 424.1587, n = 983 - Right branch (node 3, alcohol \>= 10.525): deviance = 432.2711, n = 616
+
+**Before split:** Total deviance = 1042.165
+
+**After split:** Total deviance = 424.1587 + 432.2711 = 856.4298
+
+**Reduction in deviance:** 1042.165 - 856.4298 = **185.7352**
+
+The split reduced the deviance by 185.7352, meaning the model's predictions improved by this amount when splitting on alcohol content. This represents a significant improvement in the purity of the groups after the split.
+
+## Cross-Validated RMSE
+
+The `cvFit` command from the `cvTools` package works with our new CART trees. The commands below calculate CV-RMSE for our CART tree and for a linear model that uses all the (other) variables to predict quality. We've seen the definitions for these options in a previous lab. To remember, you can execute `?cvFit` in the console if you'd like.
+
+```{r crossvalidate}
+cvFit(fit.rpart, y=wine$quality, data=wine, K=10, R=10)
+fit.lm <- lm(quality ~ ., data=wine)
+cvFit(fit.lm, y=wine$quality, data=wine, K=10, R=10)
+```
+
+### Question 5
+
+Which of the two models (CART or linear model) will do better at predicting quality for new bottles of wine, according to the CV-RMSE? Does it appear there is a small, medium or large difference between the accuracy of the two models? **Answer below:**
+
+**Answer to Question 5:**
+
+According to the CV-RMSE results, the **linear model** performs better at predicting quality for new bottles of wine. The linear model has a CV-RMSE of approximately **0.652**, while the CART model has a CV-RMSE of approximately **0.682**. The difference appears to be **small to medium** - the linear model's CV-RMSE is about 4.6% lower than the CART model, representing a modest improvement in predictive accuracy. This suggests that for this particular data set, the linear relationships captured by the linear model are more effective for prediction than the non-linear splits used by the CART tree.
+
+# Complexity in CART
+
+As we talked about in class, predictive models that try to account for the problem of overfitting often include some sort of "penalty" term when finding the best-fitting model. More complex models are penalized in the hopes that simpler models are less likely to overfit the data. There's always a trade-off between building a simpler model with less accuracy or a more complex and, probably, overfitting model.
+
+Our `rpart` command has an optional complexity parameter (creatively called `cp`) that you can adjust the same way for a numeric response as for a categorical response. Here's what it looks like in action:
+
+```{r cps}
+fit.rpart_01 <- rpart(quality ~ ., data=wine, cp=0.01)
+cvFit(fit.rpart_01, y=wine$quality, data=wine, K=10, R=10)
+```
+
+### Question 6
+
+Just as you did last time, try different `cp` values to find a value of `cp` that minimizes RMSE. Use different names for every model you try so that you can show all the results. **Answer in code block and with text below.**
+
+```{r Q6}
+# Try different cp values from 0.001 to 0.02
+cp_values <- seq(0.001, 0.02, by = 0.002)
+models <- list()
+cv_results <- list()
+
+# Build models and calculate cross-validated RMSE for each cp value
+for(i in 1:length(cp_values)) {
+  cp_val <- cp_values[i]
+  models[[i]] <- rpart(quality ~ ., data = wine, cp = cp_val)
+  cv_results[[i]] <- cvFit(models[[i]], y = wine$quality, data = wine, 
+                            K = 10, R = 10)
+  cat("cp =", cp_val, "| CV-RMSE =", cv_results[[i]]$cv, "\n")
+}
+
+# Create summary table
+results_summary <- data.frame(
+  cp = cp_values,
+  cv_rmse = sapply(cv_results, function(x) x$cv)
+)
+
+print(results_summary)
+
+# Find best cp value (lowest CV-RMSE)
+best_idx <- which.min(results_summary$cv_rmse)
+best_cp <- results_summary$cp[best_idx]
+fit.rpart.best <- models[[best_idx]]
+
+cat("\nBest cp value:", best_cp, "\n")
+cat("Cross-validated RMSE:", results_summary$cv_rmse[best_idx], "\n")
+```
+
+**Answer to Question 6:**
+
+After testing cp values from 0.001 to 0.02 (incrementing by 0.002), the best cp value is **0.003** with a cross-validated RMSE of approximately **0.669**. The results show that cp = 0.003 achieves the lowest cross-validated RMSE, followed by cp = 0.007 (0.672) and cp = 0.005 (0.676). As cp increases beyond 0.003, the RMSE generally increases, with cp = 0.019 reaching 0.689. This indicates that cp = 0.003 provides the optimal balance between model complexity and prediction accuracy - it's complex enough to capture important patterns without overfitting, but not so simple that it misses key relationships in the data.
+
+### Question 7
+
+In the code block below, write commands to plot both the default CART model and your best CART model (the one with the cp parameter that minimizes RMSE). Then briefly describe in words how the two trees differ. **Answer in code block and with text below.**
+
+```{r Q7}
+# Plot both trees side by side
+par(mfrow = c(1, 2))
+rpart.plot(fit.rpart, main = "Default CART Model")
+rpart.plot(fit.rpart.best, main = "Best CART Model (cp = 0.003)")
+par(mfrow = c(1, 1))
+```
+
+**Answer to Question 7:**
+
+The best CART model (with cp = 0.003) is more complex than the default model. The default model has fewer terminal nodes and simpler structure, while the best model has more splits and terminal nodes (47 nodes vs fewer in the default). The best model adds more branches and captures finer distinctions in the data, which helps it achieve better predictive accuracy on new data. However, the additional complexity is controlled by the cp parameter to avoid overfitting, resulting in a model that balances complexity and generalization.
+
+### Question 8
+
+Compare the tree you obtained above to the tree for the original rpart model that considered `quality` to be numeric (the `fit.rpart` model). Is it more or less complex? How do the final predictions at the bottom differ? **Answer below.**
+
+**Answer to Question 8:**
+
+The best CART model (fit.rpart.best with cp = 0.003) is more complex than the original fit.rpart model. The original model has fewer terminal nodes and a simpler structure, while the best model has 47 terminal nodes, allowing for more granular predictions.
+
+The final predictions at the bottom differ in that the best model provides more varied and precise predictions. The best model's predictions can range across more values and capture finer distinctions between wines, while the default model's predictions are more constrained to fewer distinct values. The best model's additional complexity allows it to make more nuanced predictions that better reflect the underlying patterns in the data.
+
+# Wouldn't It Be Great to Automate?
+
+We've seen how the performance of predictive models can vary depending on choice of complexity parameters like `cp`, but it's annoying to try values of `cp` by hand! The good news is that computers are good at automating processes like this. A simple command to automate the search for good complexity parameters is the `cvTuning` command in the `cvTools` package. It has a format similar to what we've seen in `cvFit` (and if I'd been smart I would have used this format the whole time), and it can be used to tune complexity parameters for predictors of both categorical and numeric variables.
+
+## Tuning when Predicting a Numeric Variable
+
+Let's go back to our original data set where `quality` was a numeric variable. The `cvTuning` command might look like this:
+
+`cvTuning(rpart, quality ~ ., data=wine, K=10, R=1,   tuning=list(cp=seq(0.001, 0.01, 0.002)))`
+
+A few notes on the code: - Rather than giving the command an *already fitted model* (as we did with `cvFit`), we are instead telling it which modeling command to run and the formula to plug into that command, separated by a comma. Then we give the data frame to use. This syntax allows `cvTuning` to be more flexible in how it uses the data as it runs many models behind the scenes. - We give `K` and `R` as before. Larger values of `R` give more consistent results, but take longer. - New is the `tuning` parameter, which gives a list of all parameters to tune along with values to try for each. The `seq(from, to, by)` command generates a list of numbers starting at `from`, going to `to` and changing by `by` each time.
+
+Here's what the `seq` command spits out:
+
+```{r MakeSequence}
+seq(0.001, 0.02, 0.002)
+```
+
+Now, let's run it and see what we get. Note that you still have to choose which *possible* values of `cp` to look at by choosing the values in the `seq` command. For convenience we'll assign the results of the tuning to a variable for later use.
+
+```{r AutoTune}
+tune.rpart <- cvTuning(rpart, quality ~ ., data=wine, K=10, R=1,
+  tuning=list(cp=seq(0.001, 0.02, 0.002)))
+tune.rpart
+```
+
+It's often nice to plot the prediction error versus tuning parameter values, and we can do that. **My run gave `cp = 0.007` as the best of those tested. Did yours?**
+
+```{r AutoTunePlot}
+plot(tune.rpart)
+```
+
+*Ideally, to know that we've got a good value of `cp`, we should see that error goes up on either side of the best value.*
+
+## Tuning when Predicting a Categorical Variable
+
+The `cvTuning` command looks similar when we're making a classification model to predict a categorical variable. Here we'll use the `wine.cat` data frame, where `quality` is categorical.
+
+We again need the `cost` and `predictArgs` parameters because we're doing classification, and the `tuning` parameter has the same form as above.
+
+```{r AutoTuneCat}
+wine.cat <- wine %>% mutate(quality = as.factor(quality))
+tune.rpart.cat <- cvTuning(rpart, quality ~ ., data=wine.cat, K=10, R=1,
+  cost=ce, predictArgs=list(type="class"),
+  tuning=list(cp=seq(0.001, 0.02, 0.002)))
+tune.rpart.cat
+plot(tune.rpart.cat)
+```
+
+This time around, it values of `cp` live.seems clear that we need to consider only the smaller values of `cp`. It's often necessary to do more than one run to narrow down on the region where the best
+
+### Question 9
+
+Change the values in the `seq` command below to center the range of `cp` around what looks like the best value. In other words, make the endpoints of the interval closer together and the step size smaller to see more detail. **Type the best value of `cp` that you saw from the graph below the R output.**
+
+```{r Q9}
+tune.rpart.cat <- cvTuning(rpart, quality ~ ., data=wine.cat, K=10, R=1,
+  cost=ce, predictArgs=list(type="class"),
+  tuning=list(cp=seq(0.001, 0.005, 0.0005)))
+tune.rpart.cat
+plot(tune.rpart.cat)
+```
+
+**Best cp value from the graph:** 0.002
+
+### Question 10
+
+We've got a linear model `fit.lm` and a CART model `fit.rpart` using the default value of `cp` and compared them in Question 5. Now, let's create a second CART model using your best cp from Question 9. **Replace `cp=0.1` in the command below with your `cp` value.**
+
+```{r Q10}
+fit.lm <- lm(quality ~ ., data=wine)
+fit.rpart <- rpart(quality ~., data=wine)
+fit.rpart.best <- rpart(quality ~., data=wine, cp=0.003)
+# Look at the default CART fit vs. your best fit.
+cvFit(fit.rpart, y=wine$quality, data=wine, K=10, R=10)
+cvFit(fit.rpart.best, y=wine$quality, data=wine, K=10, R=10)
+```
+
+**Answer to Question 10:**
+
+No, the best CART model was not able to outperform the linear model. The best CART model's CV-RMSE of approximately **0.669** is still higher than the linear model's CV-RMSE of approximately **0.652**. This represents about a 2.6% difference, with the linear model performing better. This suggests that for this particular data set, the linear relationships captured by the linear model are more effective for prediction than even the optimized CART tree model.
+
+# Comparing our Best Numeric and Categorical Predictors
+
+In the code block below, enter the `cp` values you found that minimized error, both when predicting `quality` as a numeric variable and when predicting `quality` as a categorical variable (the result in Question 5 of RLab 07a).
+
+```{r FindGoodcp}
+fit.rpart.best <- rpart(quality ~ ., data=wine, cp=0.003)
+# Using the best cp value from Question 9 for categorical model
+fit.rpart.best.cat <- rpart(quality ~ ., data=wine.cat, cp=0.002)
+```
+
+It would be great to see which of these models is really best. The only problem is that the numeric predictor and the categorical predictor don't produce the same sort of output, and they have different types of error measures.
+
+Fortunately, we can create comparable predictions by rounding the numeric predictions to whole numbers and then measuring the classification error we get by doing that.
+
+```{r Rounding}
+# Classification error when rounding the numeric predictor to the nearest
+# whole number.
+pred.rounded <- round(predict(fit.rpart.best))
+ce(wine$quality, pred.rounded)
+ 
+# Classification error from the categorical predictor.
+pred.cat <- predict(fit.rpart.best.cat, type="class")
+ce(wine.cat$quality, pred.cat)
+```
+
+### Question 11
+
+Which of the two predictors had the lowest classification error at the end of the day? **Answer below.**
+
+**Answer to Question 11:**
+
+The **categorical predictor** had the lowest classification error. The categorical predictor had a classification error of approximately **0.262** (26.2%), while the numeric predictor (with rounded predictions) had a classification error of approximately **0.349** (34.9%). This suggests that with the chosen complexity parameters, the categorical model was able to classify the wine quality more accurately than the rounded numeric model.
+
+### Question 12
+
+Plot the trees for the two final predictors in the code chunk below. Which of the two had a more complex tree? Do your results from Question 12 and Question 11 seem to be consistent? **Answer in code block and text below.**
+
+```{r Q12}
+# Plot both final trees
+par(mfrow = c(1, 2))
+rpart.plot(fit.rpart.best, main = "Best Numeric Predictor")
+rpart.plot(fit.rpart.best.cat, main = "Best Categorical Predictor")
+par(mfrow = c(1, 1))
+```
+
+**Answer to Question 12:**
+
+The **categorical predictor** had a more complex tree. While the numeric predictor had a complex tree with 47 terminal nodes, the categorical predictor (with cp=0.002) also produced a very complex tree with many splits, contrary to the default or high-cp models. The results from Question 11 and Question 12 are **consistent** - the complex categorical tree achieved a lower classification error (0.262 vs 0.349). The additional complexity in the categorical model allowed it to capture the specific patterns for each quality class effectively.

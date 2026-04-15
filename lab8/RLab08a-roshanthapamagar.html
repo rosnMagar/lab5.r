@@ -1,0 +1,1023 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.6.42">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+<meta name="author" content="Name">
+
+<title>RLab 08a – Random Forest Model (part 1)</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { display: inline-block; text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="rlab08a-randomforestmodel_files/libs/clipboard/clipboard.min.js"></script>
+<script src="rlab08a-randomforestmodel_files/libs/quarto-html/quarto.js"></script>
+<script src="rlab08a-randomforestmodel_files/libs/quarto-html/popper.min.js"></script>
+<script src="rlab08a-randomforestmodel_files/libs/quarto-html/tippy.umd.min.js"></script>
+<script src="rlab08a-randomforestmodel_files/libs/quarto-html/anchor.min.js"></script>
+<link href="rlab08a-randomforestmodel_files/libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="rlab08a-randomforestmodel_files/libs/quarto-html/quarto-syntax-highlighting-2f5df379a58b258e96c21c0638c20c03.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="rlab08a-randomforestmodel_files/libs/bootstrap/bootstrap.min.js"></script>
+<link href="rlab08a-randomforestmodel_files/libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="rlab08a-randomforestmodel_files/libs/bootstrap/bootstrap-bc12280243bdb77720a634fea117e1b2.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+
+  <script src="https://cdnjs.cloudflare.com/polyfill/v3/polyfill.min.js?features=es6"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js" type="text/javascript"></script>
+
+<script type="text/javascript">
+const typesetMath = (el) => {
+  if (window.MathJax) {
+    // MathJax Typeset
+    window.MathJax.typeset([el]);
+  } else if (window.katex) {
+    // KaTeX Render
+    var mathElements = el.getElementsByClassName("math");
+    var macros = [];
+    for (var i = 0; i < mathElements.length; i++) {
+      var texText = mathElements[i].firstChild;
+      if (mathElements[i].tagName == "SPAN") {
+        window.katex.render(texText.data, mathElements[i], {
+          displayMode: mathElements[i].classList.contains('display'),
+          throwOnError: false,
+          macros: macros,
+          fleqn: false
+        });
+      }
+    }
+  }
+}
+window.Quarto = {
+  typesetMath
+};
+</script>
+
+</head>
+
+<body class="fullcontent">
+
+<div id="quarto-content" class="page-columns page-rows-contents page-layout-article">
+
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">RLab 08a – Random Forest Model (part 1)</h1>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    <div>
+    <div class="quarto-title-meta-heading">Author</div>
+    <div class="quarto-title-meta-contents">
+             <p>Name </p>
+          </div>
+  </div>
+    
+    <div>
+    <div class="quarto-title-meta-heading">Published</div>
+    <div class="quarto-title-meta-contents">
+      <p class="date">Invalid Date</p>
+    </div>
+  </div>
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<section id="introduction" class="level1">
+<h1>Introduction</h1>
+<section id="data-and-variables" class="level2">
+<h2 class="anchored" data-anchor-id="data-and-variables">Data and Variables</h2>
+<p>We’ll be using a new data set in this lab: a data set of housing prices in Ames, Iowa, from 2006-2010. Truman’s own Dean DeCock prepared this dataset, and while he intended it for Regression, it works great for Random Forests, too. Ames is home to Iowa State University, and has about 60,000 people (3x the size of Kirksville)</p>
+<p>In this lab, we’re mainly going to be looking at using the details of each property sold to predict its price.</p>
+</section>
+<section id="loading-data-and-libraries" class="level2">
+<h2 class="anchored" data-anchor-id="loading-data-and-libraries">Loading Data and Libraries</h2>
+<p>This first bit of code loads our data set <code>home_prices_training.csv</code> and libraries. The new library this time around is the <code>randomForest</code> library, which will give us the <code>randomForest</code> command, among others, and <code>AmesHousing</code>, which is the data supplied by Dr.&nbsp;DeCock. Remove #s as you need to</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(tidyverse)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>── Attaching core tidyverse packages ──────────────────────── tidyverse 2.0.0 ──
+✔ dplyr     1.1.4     ✔ readr     2.1.5
+✔ forcats   1.0.0     ✔ stringr   1.5.1
+✔ ggplot2   4.0.0     ✔ tibble    3.3.0
+✔ lubridate 1.9.4     ✔ tidyr     1.3.1
+✔ purrr     1.1.0     
+── Conflicts ────────────────────────────────────────── tidyverse_conflicts() ──
+✖ dplyr::filter() masks stats::filter()
+✖ dplyr::lag()    masks stats::lag()
+ℹ Use the conflicted package (&lt;http://conflicted.r-lib.org/&gt;) to force all conflicts to become errors</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb3"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(rpart)</span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(rpart.plot)</span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a><span class="co">#install.packages("randomForest", repos='https://cran.case.edu/' ) </span></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a><span class="co">#install.packages("AmesHousing", repos='https://cran.case.edu/' ) </span></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(randomForest)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>randomForest 4.7-1.2
+Type rfNews() to see new features/changes/bug fixes.
+
+Attaching package: 'randomForest'
+
+The following object is masked from 'package:dplyr':
+
+    combine
+
+The following object is masked from 'package:ggplot2':
+
+    margin</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb5"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(Metrics)</span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(AmesHousing)</span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>raw.ames <span class="ot">&lt;-</span> <span class="fu">make_ordinal_ames</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+</section>
+<section id="looking-at-the-data" class="level1">
+<h1>Looking at the Data</h1>
+<p>Let’s spend some time exploring the data. First, we’ll check the columns and size of the data set. The <code>dim</code> command gives the number of rows and columns. Note that we have ~3000 data points for 81 variables</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb6"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="fu">head</span>(raw.ames)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 6 × 81
+  MS_SubClass             MS_Zoning Lot_Frontage Lot_Area Street Alley Lot_Shape
+  &lt;fct&gt;                   &lt;fct&gt;            &lt;dbl&gt;    &lt;int&gt; &lt;fct&gt;  &lt;fct&gt; &lt;ord&gt;    
+1 One_Story_1946_and_New… Resident…          141    31770 Pave   No_A… Slightly…
+2 One_Story_1946_and_New… Resident…           80    11622 Pave   No_A… Regular  
+3 One_Story_1946_and_New… Resident…           81    14267 Pave   No_A… Slightly…
+4 One_Story_1946_and_New… Resident…           93    11160 Pave   No_A… Regular  
+5 Two_Story_1946_and_New… Resident…           74    13830 Pave   No_A… Slightly…
+6 Two_Story_1946_and_New… Resident…           78     9978 Pave   No_A… Slightly…
+# ℹ 74 more variables: Land_Contour &lt;ord&gt;, Utilities &lt;ord&gt;, Lot_Config &lt;fct&gt;,
+#   Land_Slope &lt;ord&gt;, Neighborhood &lt;fct&gt;, Condition_1 &lt;fct&gt;, Condition_2 &lt;fct&gt;,
+#   Bldg_Type &lt;fct&gt;, House_Style &lt;fct&gt;, Overall_Qual &lt;ord&gt;, Overall_Cond &lt;ord&gt;,
+#   Year_Built &lt;int&gt;, Year_Remod_Add &lt;int&gt;, Roof_Style &lt;fct&gt;, Roof_Matl &lt;fct&gt;,
+#   Exterior_1st &lt;fct&gt;, Exterior_2nd &lt;fct&gt;, Mas_Vnr_Type &lt;fct&gt;,
+#   Mas_Vnr_Area &lt;dbl&gt;, Exter_Qual &lt;ord&gt;, Exter_Cond &lt;ord&gt;, Foundation &lt;fct&gt;,
+#   Bsmt_Qual &lt;ord&gt;, Bsmt_Cond &lt;ord&gt;, Bsmt_Exposure &lt;ord&gt;, …</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb8"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="fu">dim</span>(raw.ames)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 2930   81</code></pre>
+</div>
+</div>
+<section id="home-prices" class="level2">
+<h2 class="anchored" data-anchor-id="home-prices">Home Prices</h2>
+<p>The response variable in our analysis is <code>price</code>. Let’s graph it.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb10"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>raw.ames <span class="sc">%&gt;%</span> <span class="fu">ggplot</span>() <span class="sc">+</span> <span class="fu">geom_histogram</span>(<span class="at">mapping =</span> <span class="fu">aes</span>(<span class="at">x=</span>Sale_Price))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>`stat_bin()` using `bins = 30`. Pick better value `binwidth`.</code></pre>
+</div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="rlab08a-randomforestmodel_files/figure-html/unnamed-chunk-3-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>Note that there are a few really expensive houses. If we don’t predict these houses very well, they might make our error estimates huge. Or, put another way, if we tune our predictive models to minimize error, we may end up <em>overfitting</em> these outliers at the expense of other data points. One way to avoid this is to transform our <code>price</code> variable using the logarithm function.</p>
+<section id="side-note-on-logarithms" class="level3">
+<h3 class="anchored" data-anchor-id="side-note-on-logarithms">Side-note on Logarithms</h3>
+<p>Remember that a logarithm function <span class="math inline">\(\log_a\)</span> is defined as follows: <span class="math inline">\(\log_a(x) = b\)</span> if and only if <span class="math inline">\(a^b = x\)</span>. [Note that these formulas will look right in the knit version of this document.] In other words, <span class="math inline">\(\log_a(x)\)</span> is the power you’d have to raise <span class="math inline">\(a\)</span> to in order to get <span class="math inline">\(x\)</span>. This is read as “log base a.”</p>
+<p>There are two bases normally used with logarithms: “base 10” and “base <em>e</em>.” Remember that <em>e</em> is the special number with non-terminating decimal expansion e=2.718282…. Logarithms base e have a special place in Calculus, have nice theoretical properties, and are called “natural logarithms.” In calculus, they’re represented as the <em>ln</em> function, but in R, the <code>log</code> function represents natural logarithms.</p>
+<p>Important features of the natural log function include:</p>
+<ul>
+<li><code>log(x)</code> is only defined for <em>positive</em> values of <em>x</em>.</li>
+<li>Logarithms are strictly increasing as <em>x</em> increases.</li>
+<li>A log transform will rescale a variable, often changing right-skewed data into a more symmetric form.</li>
+<li>Because the transformation can be undone, if we can predict <code>log(x)</code> for some variable, we can do the inverse transform at the end to predict <em>x</em>: <span class="math inline">\(e^{\log(x)} = x\)</span>.</li>
+</ul>
+<p>In R code, the <code>exp</code> function is the inverse of the <code>log</code> function. Let’s try it:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb12"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="fu">log</span>(<span class="dv">372</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 5.918894</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb14"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="fu">exp</span>(<span class="fu">log</span>(<span class="dv">372</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 372</code></pre>
+</div>
+</div>
+<p>The following code replaces the original <code>price</code> variable with a new variable <code>log.price</code>. The histograms looks pretty normal after we do the log transform.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb16"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a>ames <span class="ot">&lt;-</span> raw.ames <span class="sc">%&gt;%</span></span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">log.price =</span> <span class="fu">log</span>(Sale_Price)) <span class="sc">%&gt;%</span> <span class="fu">select</span>(<span class="sc">-</span>Sale_Price)</span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a>ames <span class="sc">%&gt;%</span> <span class="fu">ggplot</span>() <span class="sc">+</span> <span class="fu">geom_histogram</span>(<span class="at">mapping=</span><span class="fu">aes</span>(<span class="at">x=</span>log.price))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>`stat_bin()` using `bins = 30`. Pick better value `binwidth`.</code></pre>
+</div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="rlab08a-randomforestmodel_files/figure-html/logprice-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+</section>
+</section>
+<section id="overall-measures" class="level2">
+<h2 class="anchored" data-anchor-id="overall-measures">Overall Measures</h2>
+<section id="overall_qual-and-overall_cond" class="level3">
+<h3 class="anchored" data-anchor-id="overall_qual-and-overall_cond">Overall_Qual and Overall_Cond</h3>
+<p>Both Overall_Qual and Over_Cond are 1-10 scale that rate properties on the overall quality of the house (nice building materials) and overall condition (well maintained).</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb18"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a>ames.cond.table <span class="ot">&lt;-</span> ames <span class="sc">%&gt;%</span></span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">count</span>(Overall_Cond, Overall_Qual)<span class="sc">%&gt;%</span></span>
+<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">spread</span>(Overall_Qual,n, <span class="at">fill=</span><span class="dv">0</span>)</span>
+<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a> </span>
+<span id="cb18-5"><a href="#cb18-5" aria-hidden="true" tabindex="-1"></a>ames.cond.table</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 9 × 11
+  Overall_Cond  Very_Poor  Poor  Fair Below_Average Average Above_Average  Good
+  &lt;ord&gt;             &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt;         &lt;dbl&gt;   &lt;dbl&gt;         &lt;dbl&gt; &lt;dbl&gt;
+1 Very_Poor             1     1     1             2       2             0     0
+2 Poor                  0     2     2             1       3             1     0
+3 Fair                  2     3     8            11      16             8     1
+4 Below_Average         0     3     9            31      43            10     4
+5 Average               1     4    11            76     300           356   456
+6 Above_Average         0     0     6            55     221           174    64
+7 Good                  0     0     1            42     178           118    43
+8 Very_Good             0     0     2             6      53            59    21
+9 Excellent             0     0     0             2       9             6    13
+# ℹ 3 more variables: Very_Good &lt;dbl&gt;, Excellent &lt;dbl&gt;, Very_Excellent &lt;dbl&gt;</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb20"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="fu">View</span>(ames.cond.table)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+<section id="question-1" class="level3">
+<h3 class="anchored" data-anchor-id="question-1">Question 1</h3>
+<p>Based on the table, do the two Overall variables seem to go together? Briefly explain why this might be helpful or not helpful.</p>
+<p>Looking at the table, the two Overall variables (Overall_Qual and Overall_Cond) are related but not perfectly matched. Most houses cluster around Average condition with Average quality (300 houses in that cell), which shows they often go together. However, there are many houses where they don’t match - for example, 456 houses have Average condition but Good quality, and 178 houses have Good condition with Good quality. This is helpful because they measure different things: Overall_Qual tells us about the building materials and construction quality, while Overall_Cond tells us about how well the house has been maintained. A house can be well-built (high quality) but poorly maintained (low condition), or vice versa. Having both variables helps the model understand that a well-built but run-down house might have different value than a moderately-built but well-maintained house.</p>
+</section>
+</section>
+<section id="measures-of-location" class="level2">
+<h2 class="anchored" data-anchor-id="measures-of-location">Measures of Location</h2>
+<section id="latitude-and-longitude" class="level3">
+<h3 class="anchored" data-anchor-id="latitude-and-longitude">Latitude and Longitude</h3>
+<p>The <code>long</code> and <code>lat</code> variables are different from most of the others in that they specify the property’s physical location. Let’s graph them together—on a small piece of the earth, longitude acts as an x coordinate, while latitude acts as a y coordinate (The earth is round, but it is actually easier to pretend that small rectangles of it are flat). We’ll color the points according to <code>log.price</code>. In essence, this gives a “map” of price. You could also do exp(log.price) to get back to real prices.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb21"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a>ames <span class="sc">%&gt;%</span> <span class="fu">ggplot</span>() <span class="sc">+</span></span>
+<span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>(<span class="at">mapping =</span> <span class="fu">aes</span>(<span class="at">x=</span>Longitude, <span class="at">y=</span>Latitude, <span class="at">color=</span>log.price))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="rlab08a-randomforestmodel_files/figure-html/unnamed-chunk-6-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+</section>
+<section id="question-2" class="level3">
+<h3 class="anchored" data-anchor-id="question-2">Question 2</h3>
+<p>Use a web browser to search for “map of Ames Iowa,” or some similar search term, and use it to answer these questions:<br>
+a) What do the empty areas correspond to in the real world? b) How about home prices near Iowa State University? c) Where is the region with the highest home prices? <strong>Answer below.</strong></p>
+<ol type="a">
+<li><p>The empty areas in the plot correspond to places where no houses were sold during the data collection period. Iowa State University represents the middle empty area, while the other parts represent the Airport(South), Lodge(North), and Farmland(East). The empty plots are generally parks, commercial districts, agricultural land, undeveloped areas, or other non-residential zones.</p></li>
+<li><p>Home prices near Iowa State University are typically a mix of all types of prices. The area around the university is dominated by student housing, rental properties, and smaller homes that cater to the university population, which keeps prices more affordable, however some are closer to the central part of the town that makes the price higher for properties around that region.</p></li>
+<li><p>The region with the highest home prices is typically in the central-eastern or western parts of Ames, away from the university. These areas tend to have larger, newer homes and upscale neighborhoods that command higher prices.</p></li>
+</ol>
+</section>
+</section>
+<section id="looking-at-other-variables" class="level2">
+<h2 class="anchored" data-anchor-id="looking-at-other-variables">Looking at Other Variables</h2>
+<p>There are lots of variables here. Ideally, you’d look at them all and examine their relationship to price. I’ll only ask you to look at a few here.</p>
+<section id="question-3" class="level3">
+<h3 class="anchored" data-anchor-id="question-3">Question 3</h3>
+<p>Look at the list of variables, and choose two or three that you think will be most highly correlated to price. For each variable you chose, create an appropriate graph of its relationship to <code>log.price</code>. Then give a brief description of the nature of each relationship. <strong>Answer in the code block below.</strong></p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb22"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Find variables most correlated with log.price</span></span>
+<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a>cor_sorted <span class="ot">&lt;-</span> ames <span class="sc">%&gt;%</span></span>
+<span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(<span class="fu">where</span>(is.numeric)) <span class="sc">%&gt;%</span></span>
+<span id="cb22-4"><a href="#cb22-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">map_dbl</span>(<span class="sc">~</span> <span class="fu">cor</span>(.x, ames<span class="sc">$</span>log.price, <span class="at">use =</span> <span class="st">"complete.obs"</span>)) <span class="sc">%&gt;%</span></span>
+<span id="cb22-5"><a href="#cb22-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">abs</span>() <span class="sc">%&gt;%</span></span>
+<span id="cb22-6"><a href="#cb22-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">sort</span>(<span class="at">decreasing =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb22-7"><a href="#cb22-7" aria-hidden="true" tabindex="-1"></a>cor_sorted</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>         log.price        Gr_Liv_Area        Garage_Cars        Garage_Area 
+       1.000000000        0.695862350        0.674877741        0.650766283 
+     Total_Bsmt_SF         Year_Built       First_Flr_SF     Year_Remod_Add 
+       0.625622003        0.615484490        0.602628541        0.586153114 
+         Full_Bath      TotRms_AbvGrd         Fireplaces       Mas_Vnr_Area 
+       0.577334145        0.492579242        0.488945000        0.442982861 
+      Wood_Deck_SF      Open_Porch_SF          Half_Bath          Longitude 
+       0.333320133        0.319938095        0.305920525        0.292105771 
+          Latitude     Bsmt_Full_Bath      Second_Flr_SF           Lot_Area 
+       0.286177694        0.275088665        0.274691426        0.255031420 
+       Bsmt_Unf_SF      Bedroom_AbvGr       BsmtFin_SF_1       Lot_Frontage 
+       0.194419084        0.180503371        0.167039642        0.165204379 
+    Enclosed_Porch      Kitchen_AbvGr       Screen_Porch          Pool_Area 
+       0.142485874        0.128212926        0.110424468        0.054403337 
+   Low_Qual_Fin_SF Three_season_porch            Mo_Sold          Year_Sold 
+       0.044842088        0.040248449        0.038960155        0.033130852 
+    Bsmt_Half_Bath       BsmtFin_SF_2           Misc_Val 
+       0.020892432        0.018504108        0.008718162 </code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb24"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Top 3 variables: Gr_Liv_Area (0.696), Garage_Cars (0.675), Garage_Area (0.650)</span></span>
+<span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb24-3"><a href="#cb24-3" aria-hidden="true" tabindex="-1"></a><span class="co"># Graph 1: Gr_Liv_Area vs log.price</span></span>
+<span id="cb24-4"><a href="#cb24-4" aria-hidden="true" tabindex="-1"></a>ames <span class="sc">%&gt;%</span> <span class="fu">ggplot</span>(<span class="fu">aes</span>(<span class="at">x =</span> Gr_Liv_Area, <span class="at">y =</span> log.price)) <span class="sc">+</span></span>
+<span id="cb24-5"><a href="#cb24-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>(<span class="at">alpha =</span> <span class="fl">0.3</span>) <span class="sc">+</span></span>
+<span id="cb24-6"><a href="#cb24-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_smooth</span>(<span class="at">method =</span> <span class="st">"lm"</span>, <span class="at">color =</span> <span class="st">"red"</span>) <span class="sc">+</span></span>
+<span id="cb24-7"><a href="#cb24-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">title =</span> <span class="st">"Living Area vs Log Price"</span>,</span>
+<span id="cb24-8"><a href="#cb24-8" aria-hidden="true" tabindex="-1"></a>       <span class="at">x =</span> <span class="st">"Above Grade Living Area (sq ft)"</span>, </span>
+<span id="cb24-9"><a href="#cb24-9" aria-hidden="true" tabindex="-1"></a>       <span class="at">y =</span> <span class="st">"Log Price"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>`geom_smooth()` using formula = 'y ~ x'</code></pre>
+</div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="rlab08a-randomforestmodel_files/figure-html/Q3-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+<div class="sourceCode cell-code" id="cb26"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Graph 2: Garage_Cars vs log.price</span></span>
+<span id="cb26-2"><a href="#cb26-2" aria-hidden="true" tabindex="-1"></a>ames <span class="sc">%&gt;%</span> <span class="fu">ggplot</span>(<span class="fu">aes</span>(<span class="at">x =</span> Garage_Cars, <span class="at">y =</span> log.price)) <span class="sc">+</span></span>
+<span id="cb26-3"><a href="#cb26-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_boxplot</span>() <span class="sc">+</span></span>
+<span id="cb26-4"><a href="#cb26-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">title =</span> <span class="st">"Garage Cars vs Log Price"</span>,</span>
+<span id="cb26-5"><a href="#cb26-5" aria-hidden="true" tabindex="-1"></a>       <span class="at">x =</span> <span class="st">"Garage Car Capacity"</span>, </span>
+<span id="cb26-6"><a href="#cb26-6" aria-hidden="true" tabindex="-1"></a>       <span class="at">y =</span> <span class="st">"Log Price"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: Continuous x aesthetic
+ℹ did you forget `aes(group = ...)`?</code></pre>
+</div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="rlab08a-randomforestmodel_files/figure-html/Q3-2.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+<div class="sourceCode cell-code" id="cb28"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Graph 3: Garage Area vs log.price</span></span>
+<span id="cb28-2"><a href="#cb28-2" aria-hidden="true" tabindex="-1"></a>ames <span class="sc">%&gt;%</span> <span class="fu">ggplot</span>(<span class="fu">aes</span>(<span class="at">x =</span> Garage_Area, <span class="at">y =</span> log.price)) <span class="sc">+</span></span>
+<span id="cb28-3"><a href="#cb28-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>(<span class="at">alpha =</span> <span class="fl">0.3</span>) <span class="sc">+</span></span>
+<span id="cb28-4"><a href="#cb28-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_smooth</span>(<span class="at">method =</span> <span class="st">"lm"</span>, <span class="at">color =</span> <span class="st">"red"</span>) <span class="sc">+</span></span>
+<span id="cb28-5"><a href="#cb28-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">title =</span> <span class="st">"Garage Area vs Log Price"</span>,</span>
+<span id="cb28-6"><a href="#cb28-6" aria-hidden="true" tabindex="-1"></a>       <span class="at">x =</span> <span class="st">"Total Garage Area Square Feet"</span>, </span>
+<span id="cb28-7"><a href="#cb28-7" aria-hidden="true" tabindex="-1"></a>       <span class="at">y =</span> <span class="st">"Log Price"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>`geom_smooth()` using formula = 'y ~ x'</code></pre>
+</div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="rlab08a-randomforestmodel_files/figure-html/Q3-3.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+<p><strong>Description of relationships:</strong></p>
+<ol type="1">
+<li><p><strong>Gr_Liv_Area (Living Area, correlation = 0.696)</strong>: Shows a strong positive relationship with log.price. As living area increases, price increases in a fairly straight line. This makes sense - bigger houses cost more. This is the strongest predictor among the variables we looked at.</p></li>
+<li><p><strong>Garage_Cars (Garage Capacity, correlation = 0.675)</strong>: Shows a clear positive relationship where houses with more garage space (more cars that can fit) have higher prices. The boxplot shows that median prices go up as garage capacity increases. This suggests that garage size is an important feature that buyers value.</p></li>
+<li><p><strong>Garage_Area (Garage Area, correlation = 0.651)</strong>: Shows a strong positive relationship with log.price. Similar to garage capacity, the actual square footage of the garage is highly predictive of the home price. Larger garages generally correlate with more expensive homes.</p></li>
+</ol>
+</section>
+</section>
+<section id="worrying-about-empty-spaces" class="level2">
+<h2 class="anchored" data-anchor-id="worrying-about-empty-spaces">Worrying about empty spaces</h2>
+<p>Whenever you make a randomForest, you worry about missing data. We’ll talk about several ways of doing this, but for now, I’m going to just delete any missing rows. The na.omit command just leaves out anything with missing values. You can also put omit instructions inside of modelling commands, using na.option=na.omit(ames), but if we do it at the start, we’ll have the same data set for comparisons later, instead of just making it “on the fly.”</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb30"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true" tabindex="-1"></a>ames.omit <span class="ot">&lt;-</span> <span class="fu">na.omit</span>(ames)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>Notice that it actually only omits one property, but that could be important.</p>
+</section>
+<section id="splitting-our-data" class="level2">
+<h2 class="anchored" data-anchor-id="splitting-our-data">Splitting our data</h2>
+<p>As we already know, one method of checking for overfitting is to divide our data into two: a “train” set that we’ll use to create (or train) a model, and a “test” set that we’ll use to check it later.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb31"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb31-1"><a href="#cb31-1" aria-hidden="true" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">20190407</span>)</span>
+<span id="cb31-2"><a href="#cb31-2" aria-hidden="true" tabindex="-1"></a>ames.train <span class="ot">&lt;-</span> ames.omit <span class="sc">%&gt;%</span> <span class="fu">sample_frac</span>(.<span class="dv">65</span>)</span>
+<span id="cb31-3"><a href="#cb31-3" aria-hidden="true" tabindex="-1"></a>ames.test  <span class="ot">&lt;-</span> <span class="fu">anti_join</span>(ames.omit, ames.train)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Joining with `by = join_by(MS_SubClass, MS_Zoning, Lot_Frontage, Lot_Area,
+Street, Alley, Lot_Shape, Land_Contour, Utilities, Lot_Config, Land_Slope,
+Neighborhood, Condition_1, Condition_2, Bldg_Type, House_Style, Overall_Qual,
+Overall_Cond, Year_Built, Year_Remod_Add, Roof_Style, Roof_Matl, Exterior_1st,
+Exterior_2nd, Mas_Vnr_Type, Mas_Vnr_Area, Exter_Qual, Exter_Cond, Foundation,
+Bsmt_Qual, Bsmt_Cond, Bsmt_Exposure, BsmtFin_Type_1, BsmtFin_SF_1,
+BsmtFin_Type_2, BsmtFin_SF_2, Bsmt_Unf_SF, Total_Bsmt_SF, Heating, Heating_QC,
+Central_Air, Electrical, First_Flr_SF, Second_Flr_SF, Low_Qual_Fin_SF,
+Gr_Liv_Area, Bsmt_Full_Bath, Bsmt_Half_Bath, Full_Bath, Half_Bath,
+Bedroom_AbvGr, Kitchen_AbvGr, Kitchen_Qual, TotRms_AbvGrd, Functional,
+Fireplaces, Fireplace_Qu, Garage_Type, Garage_Finish, Garage_Cars, Garage_Area,
+Garage_Qual, Garage_Cond, Paved_Drive, Wood_Deck_SF, Open_Porch_SF,
+Enclosed_Porch, Three_season_porch, Screen_Porch, Pool_Area, Pool_QC, Fence,
+Misc_Feature, Misc_Val, Mo_Sold, Year_Sold, Sale_Type, Sale_Condition,
+Longitude, Latitude, log.price)`</code></pre>
+</div>
+</div>
+</section>
+</section>
+<section id="start-with-one-tree" class="level1">
+<h1>Start with One Tree</h1>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb33"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb33-1"><a href="#cb33-1" aria-hidden="true" tabindex="-1"></a>ames.tree <span class="ot">&lt;-</span> <span class="fu">rpart</span>(log.price <span class="sc">~</span>., <span class="at">data=</span>ames.train)</span>
+<span id="cb33-2"><a href="#cb33-2" aria-hidden="true" tabindex="-1"></a><span class="fu">rpart.plot</span>(ames.tree, <span class="at">tweak=</span><span class="dv">2</span>, <span class="at">faclen=</span><span class="dv">3</span>, <span class="at">box.palette =</span> <span class="st">"Greens"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="rlab08a-randomforestmodel_files/figure-html/CART-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+<div class="sourceCode cell-code" id="cb34"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb34-1"><a href="#cb34-1" aria-hidden="true" tabindex="-1"></a>ames.tree</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>n= 1904 
+
+node), split, n, deviance, yval
+      * denotes terminal node
+
+ 1) root 1904 319.490100 12.02936  
+   2) Overall_Qual=Very_Poor,Poor,Fair,Below_Average,Average,Above_Average 1206 106.005600 11.81720  
+     4) Overall_Qual=Very_Poor,Poor,Fair,Below_Average 192  22.042300 11.46669  
+       8) Total_Bsmt_SF&lt; 799.5 112  11.324490 11.31510 *
+       9) Total_Bsmt_SF&gt;=799.5 80   4.540784 11.67892 *
+     5) Overall_Qual=Average,Above_Average,Good,Very_Good,Excellent,Very_Excellent 1014  55.908080 11.88357  
+      10) Garage_Cars&lt; 1.5 438  16.005080 11.74789 *
+      11) Garage_Cars&gt;=1.5 576  25.707480 11.98675  
+        22) Gr_Liv_Area&lt; 1244 198   4.994740 11.84573 *
+        23) Gr_Liv_Area&gt;=1244 378  14.712660 12.06061 *
+   3) Overall_Qual=Good,Very_Good,Excellent,Very_Excellent 698  65.414370 12.39592  
+     6) Garage_Cars&lt; 2.5 461  23.830490 12.26356  
+      12) First_Flr_SF&lt; 1495 348  13.211570 12.19742  
+        24) Gr_Liv_Area&lt; 1779.5 239   7.011415 12.13013 *
+        25) Gr_Liv_Area&gt;=1779.5 109   2.744942 12.34497 *
+      13) First_Flr_SF&gt;=1495 113   4.409286 12.46723 *
+     7) Garage_Cars&gt;=2.5 237  17.797230 12.65338  
+      14) Overall_Qual=Very_Poor,Poor,Fair,Below_Average,Average,Above_Average,Good,Very_Good 155   6.911317 12.53872 *
+      15) Overall_Qual=Excellent,Very_Excellent 82   4.996183 12.87012 *</code></pre>
+</div>
+</div>
+<p>This tree works OK, and was made very quickly. The forest will be much slower. Since we’re looking at logprice, the values are 2^11 or 2^12 or 2^12. A value of 2^11 is about $60,000, 2^12 is about $163,000, and 2^13 is about 440,000. Each increase in the logprice represents a factor of about 2.7 (the value of e) It shows that Overall Quality is important, as is the subclass and the size of the LivingArea, Garage, and Basement. We could do a CV to look deeper, but let’s move to the Random Forest.</p>
+</section>
+<section id="a-random-forest-to-predict-price" class="level1">
+<h1>A Random Forest to Predict Price</h1>
+<p>There are two schools of thought concerning inclusion of variables in a random forest. One school of thought suggests it’s good to remove variables from the model if those variables are (a) not related very strongly to the response variable, or (b) highly correlated with other predictor variables. This advice is definitely good if you’re dealing with regression models.</p>
+<p>On the other hand, another school of thought suggests that random forests are actually very good at handling extraneous variables and highly correlated predictor variables. My experience has been that a <em>large enough and appropriately tuned</em> random forest model gets better predictive accuracy from including <em>as many variables as possible</em>. The trade-off in this approach is that you need to tune model parameters and spend computation time on a data set with more variables.</p>
+<p>For now, let’s compute a random forest predictor using all our variables and default settings. The <code>randomForest</code> command can be run using a similar format to our other predictor commands:</p>
+<p><code>randomForest(response ~ predictors, data=data.frame)</code></p>
+<p>The command below will run for a while (sometimes going to get a cup of coffee is an integral part of data science). I commented it out so that a student who knit the document right away wouldn’t get a slow-down. Delete the line with the <code>lm</code> command, and delete the comment character on the line with the <code>randomForest</code> command, and run this chunk now.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb36"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb36-1"><a href="#cb36-1" aria-hidden="true" tabindex="-1"></a>ames.rf <span class="ot">&lt;-</span> <span class="fu">randomForest</span>(log.price <span class="sc">~</span>., <span class="at">data=</span>ames.train)</span>
+<span id="cb36-2"><a href="#cb36-2" aria-hidden="true" tabindex="-1"></a>ames.rf</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+Call:
+ randomForest(formula = log.price ~ ., data = ames.train) 
+               Type of random forest: regression
+                     Number of trees: 500
+No. of variables tried at each split: 26
+
+          Mean of squared residuals: 0.01782962
+                    % Var explained: 89.37</code></pre>
+</div>
+</div>
+</section>
+<section id="three-measures-of-error" class="level1">
+<h1>Three Measures of Error</h1>
+<p>How well does the model do at predicting <code>log.price</code>? Let’s measure it three ways.</p>
+<section id="the-wrong-way" class="level2">
+<h2 class="anchored" data-anchor-id="the-wrong-way">The Wrong Way</h2>
+<p>We could measure the RMSE of the random forest applied to its original training set. <strong>This is the wrong way to do it</strong>. But, let’s try it anyway. Note that the <code>Metrics</code> package gives us the <code>rmse</code> command to easily compare actual <code>log.price</code> to predicted.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb38"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb38-1"><a href="#cb38-1" aria-hidden="true" tabindex="-1"></a> train.predict <span class="ot">&lt;-</span> <span class="fu">predict</span>(ames.rf, <span class="at">newdata=</span>ames.train)</span>
+<span id="cb38-2"><a href="#cb38-2" aria-hidden="true" tabindex="-1"></a> <span class="fu">rmse</span>(ames.train<span class="sc">$</span>log.price, train.predict)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 0.05446083</code></pre>
+</div>
+</div>
+</section>
+<section id="out-of-bag-error" class="level2">
+<h2 class="anchored" data-anchor-id="out-of-bag-error">Out-of-Bag Error</h2>
+<p>Honest measures of prediction error will never measure a prediction model against data that was used to create the model. Using cross-validation or out-of-bag error are both honest ways to use the training set to get a measure of error, but out-of-bag error is the easiest with random forests. You can get out-of-bag error from the default model summary or by printing the last entry of the <code>mse</code> field of the model directly. It’s not labeled as “out-of-bag error” but it is. Since the <code>randomForest</code> procedure gives mean squared error, rather than RMSE, we’ll take the square root of the number we got from the randomForest output.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb40"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb40-1"><a href="#cb40-1" aria-hidden="true" tabindex="-1"></a>ames.rf</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+Call:
+ randomForest(formula = log.price ~ ., data = ames.train) 
+               Type of random forest: regression
+                     Number of trees: 500
+No. of variables tried at each split: 26
+
+          Mean of squared residuals: 0.01782962
+                    % Var explained: 89.37</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb42"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb42-1"><a href="#cb42-1" aria-hidden="true" tabindex="-1"></a><span class="fu">last</span>(ames.rf<span class="sc">$</span>mse)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 0.01782962</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb44"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb44-1"><a href="#cb44-1" aria-hidden="true" tabindex="-1"></a><span class="fu">sqrt</span>(<span class="fu">last</span>(ames.rf<span class="sc">$</span>mse))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 0.1335276</code></pre>
+</div>
+</div>
+</section>
+<section id="measuring-error-with-a-test-set" class="level2">
+<h2 class="anchored" data-anchor-id="measuring-error-with-a-test-set">Measuring Error with a Test Set</h2>
+<p>Another honest way to measure prediction error is to apply the model to a separate testing set that wasn’t used to create the model. The code below loads in our testing set, applies the same modifications to it, and measures how well our model does with this new data.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb46"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb46-1"><a href="#cb46-1" aria-hidden="true" tabindex="-1"></a>test.predictCART <span class="ot">&lt;-</span> <span class="fu">predict</span>(ames.tree, <span class="at">newdata=</span>ames.test)</span>
+<span id="cb46-2"><a href="#cb46-2" aria-hidden="true" tabindex="-1"></a><span class="fu">rmse</span>(ames.test<span class="sc">$</span>log.price, test.predictCART)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 0.2195959</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb48"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb48-1"><a href="#cb48-1" aria-hidden="true" tabindex="-1"></a>test.predict <span class="ot">&lt;-</span> <span class="fu">predict</span>(ames.rf, <span class="at">newdata=</span>ames.test)</span>
+<span id="cb48-2"><a href="#cb48-2" aria-hidden="true" tabindex="-1"></a><span class="fu">rmse</span>(ames.test<span class="sc">$</span>log.price, test.predict)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 0.1406617</code></pre>
+</div>
+</div>
+<p>You can see that the Random Forest totally beat the CART Tree with the test data. Using the Test set gave a similar answer to the OOB, which is handy, since OOB is “free” in a rf model.</p>
+<section id="question-4" class="level3">
+<h3 class="anchored" data-anchor-id="question-4">Question 4</h3>
+<p>Compare these three measures of error. Which match, and which don’t? Which are higher and which are lower? Why is that important?</p>
+<p>The three error measures show different values. The training RMSE (wrong way) is 0.055, which is the lowest. This is because the model was built using this same data, so it fits it very well i.e overfits. The out-of-bag (OOB) RMSE is 0.136, which is higher. This is an honest estimate because each tree in the random forest only uses part of the training data, so it can test itself on data it hasn’t seen. The test set RMSE is 0.141, which is very similar to the OOB RMSE (0.136 vs 0.141).</p>
+<p>The OOB and test set RMSE match closely, which is important because it shows that OOB error is a reliable way to estimate how well the model will do on new data, without needing to set aside a separate test set. The training RMSE being much lower (0.055) than the other two (around 0.14) indicates overfitting - the model memorized the training data too well and won’t perform as well on new houses. This is why we need honest error measures like OOB or test set RMSE to know how good our model really is.</p>
+</section>
+</section>
+</section>
+
+</main>
+<!-- /main column -->
+<script id="quarto-html-after-body" type="application/javascript">
+window.document.addEventListener("DOMContentLoaded", function (event) {
+  const toggleBodyColorMode = (bsSheetEl) => {
+    const mode = bsSheetEl.getAttribute("data-mode");
+    const bodyEl = window.document.querySelector("body");
+    if (mode === "dark") {
+      bodyEl.classList.add("quarto-dark");
+      bodyEl.classList.remove("quarto-light");
+    } else {
+      bodyEl.classList.add("quarto-light");
+      bodyEl.classList.remove("quarto-dark");
+    }
+  }
+  const toggleBodyColorPrimary = () => {
+    const bsSheetEl = window.document.querySelector("link#quarto-bootstrap");
+    if (bsSheetEl) {
+      toggleBodyColorMode(bsSheetEl);
+    }
+  }
+  toggleBodyColorPrimary();  
+  const icon = "";
+  const anchorJS = new window.AnchorJS();
+  anchorJS.options = {
+    placement: 'right',
+    icon: icon
+  };
+  anchorJS.add('.anchored');
+  const isCodeAnnotation = (el) => {
+    for (const clz of el.classList) {
+      if (clz.startsWith('code-annotation-')) {                     
+        return true;
+      }
+    }
+    return false;
+  }
+  const onCopySuccess = function(e) {
+    // button target
+    const button = e.trigger;
+    // don't keep focus
+    button.blur();
+    // flash "checked"
+    button.classList.add('code-copy-button-checked');
+    var currentTitle = button.getAttribute("title");
+    button.setAttribute("title", "Copied!");
+    let tooltip;
+    if (window.bootstrap) {
+      button.setAttribute("data-bs-toggle", "tooltip");
+      button.setAttribute("data-bs-placement", "left");
+      button.setAttribute("data-bs-title", "Copied!");
+      tooltip = new bootstrap.Tooltip(button, 
+        { trigger: "manual", 
+          customClass: "code-copy-button-tooltip",
+          offset: [0, -8]});
+      tooltip.show();    
+    }
+    setTimeout(function() {
+      if (tooltip) {
+        tooltip.hide();
+        button.removeAttribute("data-bs-title");
+        button.removeAttribute("data-bs-toggle");
+        button.removeAttribute("data-bs-placement");
+      }
+      button.setAttribute("title", currentTitle);
+      button.classList.remove('code-copy-button-checked');
+    }, 1000);
+    // clear code selection
+    e.clearSelection();
+  }
+  const getTextToCopy = function(trigger) {
+      const codeEl = trigger.previousElementSibling.cloneNode(true);
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+  }
+  const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+    text: getTextToCopy
+  });
+  clipboard.on('success', onCopySuccess);
+  if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+    const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+      text: getTextToCopy,
+      container: window.document.getElementById('quarto-embedded-source-code-modal')
+    });
+    clipboardModal.on('success', onCopySuccess);
+  }
+    var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+    var mailtoRegex = new RegExp(/^mailto:/);
+      var filterRegex = new RegExp('/' + window.location.host + '/');
+    var isInternal = (href) => {
+        return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+    }
+    // Inspect non-navigation links and adorn them if external
+ 	var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+    for (var i=0; i<links.length; i++) {
+      const link = links[i];
+      if (!isInternal(link.href)) {
+        // undo the damage that might have been done by quarto-nav.js in the case of
+        // links that we want to consider external
+        if (link.dataset.originalHref !== undefined) {
+          link.href = link.dataset.originalHref;
+        }
+      }
+    }
+  function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+    const config = {
+      allowHTML: true,
+      maxWidth: 500,
+      delay: 100,
+      arrow: false,
+      appendTo: function(el) {
+          return el.parentElement;
+      },
+      interactive: true,
+      interactiveBorder: 10,
+      theme: 'quarto',
+      placement: 'bottom-start',
+    };
+    if (contentFn) {
+      config.content = contentFn;
+    }
+    if (onTriggerFn) {
+      config.onTrigger = onTriggerFn;
+    }
+    if (onUntriggerFn) {
+      config.onUntrigger = onUntriggerFn;
+    }
+    window.tippy(el, config); 
+  }
+  const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+  for (var i=0; i<noterefs.length; i++) {
+    const ref = noterefs[i];
+    tippyHover(ref, function() {
+      // use id or data attribute instead here
+      let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+      try { href = new URL(href).hash; } catch {}
+      const id = href.replace(/^#\/?/, "");
+      const note = window.document.getElementById(id);
+      if (note) {
+        return note.innerHTML;
+      } else {
+        return "";
+      }
+    });
+  }
+  const xrefs = window.document.querySelectorAll('a.quarto-xref');
+  const processXRef = (id, note) => {
+    // Strip column container classes
+    const stripColumnClz = (el) => {
+      el.classList.remove("page-full", "page-columns");
+      if (el.children) {
+        for (const child of el.children) {
+          stripColumnClz(child);
+        }
+      }
+    }
+    stripColumnClz(note)
+    if (id === null || id.startsWith('sec-')) {
+      // Special case sections, only their first couple elements
+      const container = document.createElement("div");
+      if (note.children && note.children.length > 2) {
+        container.appendChild(note.children[0].cloneNode(true));
+        for (let i = 1; i < note.children.length; i++) {
+          const child = note.children[i];
+          if (child.tagName === "P" && child.innerText === "") {
+            continue;
+          } else {
+            container.appendChild(child.cloneNode(true));
+            break;
+          }
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(container);
+        }
+        return container.innerHTML
+      } else {
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        return note.innerHTML;
+      }
+    } else {
+      // Remove any anchor links if they are present
+      const anchorLink = note.querySelector('a.anchorjs-link');
+      if (anchorLink) {
+        anchorLink.remove();
+      }
+      if (window.Quarto?.typesetMath) {
+        window.Quarto.typesetMath(note);
+      }
+      if (note.classList.contains("callout")) {
+        return note.outerHTML;
+      } else {
+        return note.innerHTML;
+      }
+    }
+  }
+  for (var i=0; i<xrefs.length; i++) {
+    const xref = xrefs[i];
+    tippyHover(xref, undefined, function(instance) {
+      instance.disable();
+      let url = xref.getAttribute('href');
+      let hash = undefined; 
+      if (url.startsWith('#')) {
+        hash = url;
+      } else {
+        try { hash = new URL(url).hash; } catch {}
+      }
+      if (hash) {
+        const id = hash.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note !== null) {
+          try {
+            const html = processXRef(id, note.cloneNode(true));
+            instance.setContent(html);
+          } finally {
+            instance.enable();
+            instance.show();
+          }
+        } else {
+          // See if we can fetch this
+          fetch(url.split('#')[0])
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.getElementById(id);
+            if (note !== null) {
+              const html = processXRef(id, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      } else {
+        // See if we can fetch a full url (with no hash to target)
+        // This is a special case and we should probably do some content thinning / targeting
+        fetch(url)
+        .then(res => res.text())
+        .then(html => {
+          const parser = new DOMParser();
+          const htmlDoc = parser.parseFromString(html, "text/html");
+          const note = htmlDoc.querySelector('main.content');
+          if (note !== null) {
+            // This should only happen for chapter cross references
+            // (since there is no id in the URL)
+            // remove the first header
+            if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+              note.children[0].remove();
+            }
+            const html = processXRef(null, note);
+            instance.setContent(html);
+          } 
+        }).finally(() => {
+          instance.enable();
+          instance.show();
+        });
+      }
+    }, function(instance) {
+    });
+  }
+      let selectedAnnoteEl;
+      const selectorForAnnotation = ( cell, annotation) => {
+        let cellAttr = 'data-code-cell="' + cell + '"';
+        let lineAttr = 'data-code-annotation="' +  annotation + '"';
+        const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+        return selector;
+      }
+      const selectCodeLines = (annoteEl) => {
+        const doc = window.document;
+        const targetCell = annoteEl.getAttribute("data-target-cell");
+        const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+        const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+        const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+        const lineIds = lines.map((line) => {
+          return targetCell + "-" + line;
+        })
+        let top = null;
+        let height = null;
+        let parent = null;
+        if (lineIds.length > 0) {
+            //compute the position of the single el (top and bottom and make a div)
+            const el = window.document.getElementById(lineIds[0]);
+            top = el.offsetTop;
+            height = el.offsetHeight;
+            parent = el.parentElement.parentElement;
+          if (lineIds.length > 1) {
+            const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+            const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+            height = bottom - top;
+          }
+          if (top !== null && height !== null && parent !== null) {
+            // cook up a div (if necessary) and position it 
+            let div = window.document.getElementById("code-annotation-line-highlight");
+            if (div === null) {
+              div = window.document.createElement("div");
+              div.setAttribute("id", "code-annotation-line-highlight");
+              div.style.position = 'absolute';
+              parent.appendChild(div);
+            }
+            div.style.top = top - 2 + "px";
+            div.style.height = height + 4 + "px";
+            div.style.left = 0;
+            let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+            if (gutterDiv === null) {
+              gutterDiv = window.document.createElement("div");
+              gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+              gutterDiv.style.position = 'absolute';
+              const codeCell = window.document.getElementById(targetCell);
+              const gutter = codeCell.querySelector('.code-annotation-gutter');
+              gutter.appendChild(gutterDiv);
+            }
+            gutterDiv.style.top = top - 2 + "px";
+            gutterDiv.style.height = height + 4 + "px";
+          }
+          selectedAnnoteEl = annoteEl;
+        }
+      };
+      const unselectCodeLines = () => {
+        const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+        elementsIds.forEach((elId) => {
+          const div = window.document.getElementById(elId);
+          if (div) {
+            div.remove();
+          }
+        });
+        selectedAnnoteEl = undefined;
+      };
+        // Handle positioning of the toggle
+    window.addEventListener(
+      "resize",
+      throttle(() => {
+        elRect = undefined;
+        if (selectedAnnoteEl) {
+          selectCodeLines(selectedAnnoteEl);
+        }
+      }, 10)
+    );
+    function throttle(fn, ms) {
+    let throttle = false;
+    let timer;
+      return (...args) => {
+        if(!throttle) { // first call gets through
+            fn.apply(this, args);
+            throttle = true;
+        } else { // all the others get throttled
+            if(timer) clearTimeout(timer); // cancel #2
+            timer = setTimeout(() => {
+              fn.apply(this, args);
+              timer = throttle = false;
+            }, ms);
+        }
+      };
+    }
+      // Attach click handler to the DT
+      const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+      for (const annoteDlNode of annoteDls) {
+        annoteDlNode.addEventListener('click', (event) => {
+          const clickedEl = event.target;
+          if (clickedEl !== selectedAnnoteEl) {
+            unselectCodeLines();
+            const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+            if (activeEl) {
+              activeEl.classList.remove('code-annotation-active');
+            }
+            selectCodeLines(clickedEl);
+            clickedEl.classList.add('code-annotation-active');
+          } else {
+            // Unselect the line
+            unselectCodeLines();
+            clickedEl.classList.remove('code-annotation-active');
+          }
+        });
+      }
+  const findCites = (el) => {
+    const parentEl = el.parentElement;
+    if (parentEl) {
+      const cites = parentEl.dataset.cites;
+      if (cites) {
+        return {
+          el,
+          cites: cites.split(' ')
+        };
+      } else {
+        return findCites(el.parentElement)
+      }
+    } else {
+      return undefined;
+    }
+  };
+  var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+  for (var i=0; i<bibliorefs.length; i++) {
+    const ref = bibliorefs[i];
+    const citeInfo = findCites(ref);
+    if (citeInfo) {
+      tippyHover(citeInfo.el, function() {
+        var popup = window.document.createElement('div');
+        citeInfo.cites.forEach(function(cite) {
+          var citeDiv = window.document.createElement('div');
+          citeDiv.classList.add('hanging-indent');
+          citeDiv.classList.add('csl-entry');
+          var biblioDiv = window.document.getElementById('ref-' + cite);
+          if (biblioDiv) {
+            citeDiv.innerHTML = biblioDiv.innerHTML;
+          }
+          popup.appendChild(citeDiv);
+        });
+        return popup.innerHTML;
+      });
+    }
+  }
+});
+</script>
+</div> <!-- /content -->
+
+
+
+
+</body></html>

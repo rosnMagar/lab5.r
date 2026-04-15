@@ -1,0 +1,184 @@
+---
+title: "Take-home Final Exam"
+author: "Roshan Thapa Magar"
+date: "12/10/2025"
+format: pdf
+output-file: "Final-take-home-roshanthapamagar"
+output-ext: "pdf"
+editor: source
+---
+
+```{r packages}
+library(tidyverse)
+library(rpart)
+library(rpart.plot)
+library(randomForest)
+library(Metrics)
+```
+
+This is literally the same cleaning we did for the midterm. After you've run this chunk one time, replace eval=TRUE with eval=FALSE. If you do that, the system will load your local file, not download it each time.
+
+```{r DownloadAndClean, eval=FALSE}
+url<-"https://docs.google.com/spreadsheets/d/e/2PACX-1vTdDSQgZxAZggE0LL56FDtSC5d7UDkaKh-aBx7Ax4H9AEeLNcI-7hL1sYFzS6fhxMWnd_qsEo1sTq8l/pub?gid=100272827&single=true&output=csv"
+basic_income_dalia <- read.csv(url)
+basic_income_short <- basic_income_dalia %>%
+  rename(awareness = question_bbi_2016wave4_basicincome_awareness) %>%	#101
+  rename(vote = question_bbi_2016wave4_basicincome_vote) %>%
+  rename(effect = question_bbi_2016wave4_basicincome_effect) %>%
+  rename(argpro = question_bbi_2016wave4_basicincome_argumentsfor) %>%
+  rename(argcon = question_bbi_2016wave4_basicincome_argumentsagainst)
+ 
+basic_income_clean <- basic_income_short %>%
+  mutate(pro_anxiety = str_detect(argpro, "anxiety")) %>%            	#102
+  mutate(pro_equality = str_detect(argpro, "equality")) %>%
+  mutate(pro_indep = str_detect(argpro, "independence")) %>%
+  mutate(pro_solidarity = str_detect(argpro, "solidarity")) %>%
+  mutate(pro_bureau = str_detect(argpro, "bureaucracy")) %>%
+  mutate(pro_volunteer = str_detect(argpro, "volunteer")) %>%
+  mutate(pro_none = str_detect(argpro, "None"))%>%
+  mutate(con_expensive = str_detect(argcon, "finance"))%>%
+  mutate(con_stopworking = str_detect(argcon, "stop"))%>%
+  mutate(con_foreigners = str_detect(argcon, "Foreigners"))%>%
+  mutate(con_merit = str_detect(argcon, "merit"))%>%
+  mutate(con_need = str_detect(argcon, "need"))%>%
+  mutate(con_dependence = str_detect(argcon, "dependence"))%>%
+  mutate(con_none = str_detect(argcon, "None")) %>%
+  mutate(pro_count = pro_anxiety+pro_equality+pro_indep
+         +pro_solidarity+pro_bureau+pro_volunteer)%>%
+  mutate(con_count = con_expensive+con_stopworking+con_foreigners
+         +con_merit+con_need+con_dependence)%>%
+  select(-uuid, -weight,-argpro,-argcon)                             	#103
+ 
+#basic_income_clean$vote <- as.factor(basic_income_clean$vote)  
+levels(basic_income_clean$vote) <- list(
+        	Yes = "I would vote for it",
+        	ProbYes = "I would probably vote for it",
+        	StayHome = "I would not vote",
+        	ProbNo = "I would probably vote against it",
+        	No = "I would vote against it")
+ 
+write.csv(basic_income_clean,"basic_income.csv") #104
+```
+
+This chunk loads the file once you've saved it into your project or folder.
+
+```{r loadclean, eval=TRUE}
+basic_income_clean <- read.csv("basic_income.csv")     	#201
+
+basic_income_clean %>%
+  count(vote) #202
+# This shows that we have 960 "No" votes and 1159 "Yes" i.e "StayHome" response
+  
+ 
+```
+
+You can confirm it is correct by affirming that 960 respondents responded with "No"
+
+#### Q2 Make the requested plots
+
+```{r AgeAwarenessPlot}
+ggplot(data=basic_income_clean, mapping = aes(x = awareness, y = age, fill=awareness)) +
+  geom_boxplot() + 
+  theme(axis.text.x = element_blank())
+```
+
+The boxplot shows that younger people are generally less aware of basic income, as the group that has "never heard of it" has the lowest median age. In contrast, those who are familiar with the concept tend to be slightly older on average.
+
+```{r EducationLevelAwarenessPlot}
+ggplot(data=basic_income_clean, mapping= aes(x=awareness, fill=dem_education_level)) +
+  geom_bar(position="fill") +
+  coord_flip()
+ 
+```
+
+Younger respondents are generally less aware of basic income, while those who are familiar with the concept tend to be older. Additionally, awareness increases with education level, as those with high education are significantly more likely to fully understand the concept than those with little or no education.
+
+#### Q3 simplify the data tables and make a regression
+
+```{r simplevote}
+ 
+table(basic_income_clean$vote, useNA="ifany")
+ 
+simple_vote <- basic_income_clean %>%
+  drop_na() %>%
+    mutate(voteInFavor=as.factor(case_when(
+	vote == "I would vote for it" ~ TRUE,         
+	vote == "I would probably vote for it" ~ TRUE,
+	vote == "I would probably vote against it" ~ FALSE,
+	vote == "I would vote against it" ~ FALSE)))
+#"Stay at Home" is automatically coded as NA
+ 
+table(simple_vote$voteInFavor, useNA="ifany")
+ 
+ 
+simpler_vote <- simple_vote %>%
+  select(-vote, -pro_count, -con_count, -pro_none, -effect) %>%
+  drop_na()
+ 
+table(simpler_vote$voteInFavor, useNA="ifany")
+```
+
+```{r regression}
+age.lm <- lm(age ~ gender + rural + voteInFavor + awareness +
+               dem_has_children+ + pro_count + con_count,
+             data=simple_vote)
+summary(age.lm)
+age.step <- step(age.lm, trace=0)
+summary(age.step)
+ 
+```
+
+In the step-wise linear regression, it looks like the value `ruralurban` was omitted.
+
+Average
+
+#### Q4 Make training and testing sets, then create a CART and a Random Forest models
+
+```{r datasplit}
+set.seed(2000)
+vote_train <- sample_frac(simpler_vote, .7)
+vote_test <- anti_join(simpler_vote, vote_train, by = "X")
+```
+
+Show CART tree using rpart as well as rpart.plot commands
+
+```{r CART}
+set.seed(052020)
+vote.cart <- rpart(voteInFavor ~ ., data=vote_train)
+rpart.plot(vote.cart, extra=104)
+ 
+#stuff goes in the vote.cart line
+print(vote.cart)
+ 
+```
+
+Create a Random Forest model, using randomForest command
+
+```{r rf}
+set.seed(052020)
+vote.rf <- randomForest(voteInFavor ~ ., data=vote_train)
+varImpPlot(vote.rf, pch=19, col="steelblue")
+
+print(vote.rf)
+#more stuff goes in this chunk
+ 
+ 
+```
+
+In this model, the OOB error shows a significant difference between classes. The model was much better for the TRUE response class (voting in favor). The model correctly predicted 'In Favor' voters with only a \~5.7% error rate. However, it performed poorly for the 'FALSE' response (voting against), misclassifying them more than half the time (error rate of \~55.5%). This suggests the model is biased towards predicting that people will vote in favor.
+
+#### Q5 Compare your models using predict and ce commands and vote_test dataset
+
+```{r comparing}
+test_cart <- predict(vote.cart, newdata = vote_test, type="class")
+cart.ce = ce(vote_test$voteInFavor, test_cart)
+print(cart.ce) 
+ 
+test_rf <- predict(vote.rf, newdata=vote_test)
+rf.ce = ce(vote_test$voteInFavor, test_rf)
+print(rf.ce)
+#more stuff goes in this chunk
+
+```
+
+The Random Forest model did the best job of predicting voteInFavor. I know this because its classification error (approximately 20.2%) was lower than the CART model's error (approximately 24.1%) when tested on the same unseen data.

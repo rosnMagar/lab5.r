@@ -1,0 +1,849 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.6.42">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+<meta name="author" content="Roshan Thapa Magar">
+
+<title>RLab 08b – Random Forest Model (part 2)</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { display: inline-block; text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="ralb08b-randomforestmodel_files/libs/clipboard/clipboard.min.js"></script>
+<script src="ralb08b-randomforestmodel_files/libs/quarto-html/quarto.js"></script>
+<script src="ralb08b-randomforestmodel_files/libs/quarto-html/popper.min.js"></script>
+<script src="ralb08b-randomforestmodel_files/libs/quarto-html/tippy.umd.min.js"></script>
+<script src="ralb08b-randomforestmodel_files/libs/quarto-html/anchor.min.js"></script>
+<link href="ralb08b-randomforestmodel_files/libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="ralb08b-randomforestmodel_files/libs/quarto-html/quarto-syntax-highlighting-2f5df379a58b258e96c21c0638c20c03.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="ralb08b-randomforestmodel_files/libs/bootstrap/bootstrap.min.js"></script>
+<link href="ralb08b-randomforestmodel_files/libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="ralb08b-randomforestmodel_files/libs/bootstrap/bootstrap-bc12280243bdb77720a634fea117e1b2.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+
+
+</head>
+
+<body class="fullcontent">
+
+<div id="quarto-content" class="page-columns page-rows-contents page-layout-article">
+
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">RLab 08b – Random Forest Model (part 2)</h1>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    <div>
+    <div class="quarto-title-meta-heading">Author</div>
+    <div class="quarto-title-meta-contents">
+             <p>Roshan Thapa Magar </p>
+          </div>
+  </div>
+    
+    <div>
+    <div class="quarto-title-meta-heading">Published</div>
+    <div class="quarto-title-meta-contents">
+      <p class="date">Invalid Date</p>
+    </div>
+  </div>
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<section id="introduction" class="level1">
+<h1>Introduction</h1>
+<p><strong>Warning: Don’t render this document at the beginning of class, as it might take a while to run. You will, of course, create a final rendered document to turn in.</strong></p>
+<section id="data-and-variables" class="level2">
+<h2 class="anchored" data-anchor-id="data-and-variables">Data and Variables</h2>
+<p>We’ll continue using our data set of housing prices in Ames, Iowa. You can learn about the variables by using ?AmesHousing.</p>
+<p>In this part of the lab, we’ll look at tuning random forest models for prediction and at how we can extract some <em>meaning</em> from random forest models.</p>
+</section>
+<section id="loading-data-and-libraries" class="level2">
+<h2 class="anchored" data-anchor-id="loading-data-and-libraries">Loading Data and Libraries</h2>
+<p>We’ll first load libraries, load data, and get back to the data set as it was in the last lab.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="co">#install.packages if you need to.</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(tidyverse)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>── Attaching core tidyverse packages ──────────────────────── tidyverse 2.0.0 ──
+✔ dplyr     1.1.4     ✔ readr     2.1.5
+✔ forcats   1.0.0     ✔ stringr   1.5.1
+✔ ggplot2   4.0.0     ✔ tibble    3.3.0
+✔ lubridate 1.9.4     ✔ tidyr     1.3.1
+✔ purrr     1.1.0     
+── Conflicts ────────────────────────────────────────── tidyverse_conflicts() ──
+✖ dplyr::filter() masks stats::filter()
+✖ dplyr::lag()    masks stats::lag()
+ℹ Use the conflicted package (&lt;http://conflicted.r-lib.org/&gt;) to force all conflicts to become errors</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb3"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(randomForest)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>randomForest 4.7-1.2
+Type rfNews() to see new features/changes/bug fixes.
+
+Attaching package: 'randomForest'
+
+The following object is masked from 'package:dplyr':
+
+    combine
+
+The following object is masked from 'package:ggplot2':
+
+    margin</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb5"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(rpart)</span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(rpart.plot)</span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(Metrics)</span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(AmesHousing)</span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>raw.ames <span class="ot">&lt;-</span> <span class="fu">make_ordinal_ames</span>()</span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a>ames.omit <span class="ot">&lt;-</span> raw.ames <span class="sc">%&gt;%</span></span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">log.price =</span> <span class="fu">log</span>(Sale_Price)) <span class="sc">%&gt;%</span> <span class="fu">select</span>(<span class="sc">-</span>Sale_Price) <span class="sc">%&gt;%</span></span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">na.omit</span>()</span>
+<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">20190407</span>)</span>
+<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a>ames.train <span class="ot">&lt;-</span> ames.omit <span class="sc">%&gt;%</span> <span class="fu">sample_frac</span>(.<span class="dv">65</span>)</span>
+<span id="cb5-11"><a href="#cb5-11" aria-hidden="true" tabindex="-1"></a>ames.test  <span class="ot">&lt;-</span> <span class="fu">anti_join</span>(ames.omit, ames.train)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Joining with `by = join_by(MS_SubClass, MS_Zoning, Lot_Frontage, Lot_Area,
+Street, Alley, Lot_Shape, Land_Contour, Utilities, Lot_Config, Land_Slope,
+Neighborhood, Condition_1, Condition_2, Bldg_Type, House_Style, Overall_Qual,
+Overall_Cond, Year_Built, Year_Remod_Add, Roof_Style, Roof_Matl, Exterior_1st,
+Exterior_2nd, Mas_Vnr_Type, Mas_Vnr_Area, Exter_Qual, Exter_Cond, Foundation,
+Bsmt_Qual, Bsmt_Cond, Bsmt_Exposure, BsmtFin_Type_1, BsmtFin_SF_1,
+BsmtFin_Type_2, BsmtFin_SF_2, Bsmt_Unf_SF, Total_Bsmt_SF, Heating, Heating_QC,
+Central_Air, Electrical, First_Flr_SF, Second_Flr_SF, Low_Qual_Fin_SF,
+Gr_Liv_Area, Bsmt_Full_Bath, Bsmt_Half_Bath, Full_Bath, Half_Bath,
+Bedroom_AbvGr, Kitchen_AbvGr, Kitchen_Qual, TotRms_AbvGrd, Functional,
+Fireplaces, Fireplace_Qu, Garage_Type, Garage_Finish, Garage_Cars, Garage_Area,
+Garage_Qual, Garage_Cond, Paved_Drive, Wood_Deck_SF, Open_Porch_SF,
+Enclosed_Porch, Three_season_porch, Screen_Porch, Pool_Area, Pool_QC, Fence,
+Misc_Feature, Misc_Val, Mo_Sold, Year_Sold, Sale_Type, Sale_Condition,
+Longitude, Latitude, log.price)`</code></pre>
+</div>
+</div>
+</section>
+</section>
+<section id="tuning-random-forest-models" class="level1">
+<h1>Tuning Random Forest Models</h1>
+<p>As we saw in the lecture, it’s possible to adjust several tuning parameters in the random forest algorithm in an attempt to decrease out-of-bag error estimates (which in turn we hope will decrease prediction error on new data points). We’ll concentrate on just one tuning parameter: <code>mtry</code>, which determines the number of variables randomly considered at each branching point of the tree. Generally speaking, we would expect <code>mtry</code> to have the following effects:</p>
+<ul>
+<li><p>A very small value of <code>mtry</code> means few variables will be considered at every branch. There might not be enough leeway for the RF algorithm to find good splits and create accurate trees.</p></li>
+<li><p>A very large value of <code>mtry</code> means that the RF algorithm will consider most of the variables at every split. This could lead to the creation of very similar trees each time. Without differently-structured trees to average, accuracy might again go down.</p></li>
+<li><p>Somewhere between these extremes there may be a “sweet spot” where we get the best accuracy.</p></li>
+</ul>
+<p>Of course, these general observations will play out a bit differently in every different data set.</p>
+<p>The <code>randomForest</code> package offers the <code>tuneRF</code> command to help in choosing a good value of <code>mtry</code>. The default version of the command looks like this:</p>
+<p><code>tuneRF(x = xvariables, y = yvariables)</code></p>
+<p>where <code>xvariables</code> is the name of a data frame that has <em>only</em> your predictor variables, and <code>yvariables</code> is the name of a data frame or vector with only your response variable. The <code>tuneRF</code> command doesn’t allow you to use the formula interface, unfortunately.</p>
+<p>In practice, there are several options you might want to set. If you don’t set them, sensible defaults will be assumed.</p>
+<ul>
+<li><p><code>ntreeTry</code> specifies the number of trees to create in each run of the <code>randomForest</code> command. It’s default value is 50, which is relatively small, but remember you’re running a lot of trees to choose your tuning parameter.</p></li>
+<li><p><code>mtryStart</code> specifies the value of <code>mtry</code> to use as a starting point. Generally, you can leave this one as-is.</p></li>
+<li><p><code>stepFactor</code> specifies how to adjust <code>mtry</code> between runs. For each new run, <code>mtry</code> is either <em>multiplied</em> or <em>divided</em> by this value, and then rounded to a whole number. To try more values of <code>mtry</code>, set this value to be a little bigger than 1.</p></li>
+<li><p><code>improve</code> helps determine when the algorithm will stop. The algorithm will stop if its current try didn’t improve error rates by at least the value of <code>improve</code>. I prefer to set <code>improve=0</code> to at least make sure I see the “upturn” in the error rates on each side.</p></li>
+</ul>
+<p>See the help page for <code>tuneRF</code> to see other options.</p>
+<p>Let’s try it! I’ve given two sets of code in the next code block. The commented code would work most of the time. We need to use the <code>model.matrix</code> command only because we have the <code>zipcode</code> variable that has too many distinct levels for <code>randomForest</code> to deal with directly. By default, details of each run are printed, and a plot of error as a function of <code>mtry</code> is also shown.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb7"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>rf.x <span class="ot">&lt;-</span> ames.test <span class="sc">%&gt;%</span> <span class="fu">select</span>(<span class="sc">-</span>log.price)</span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>rf.y <span class="ot">&lt;-</span> ames.test<span class="sc">$</span>log.price</span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a><span class="fu">tuneRF</span>(<span class="at">x=</span>rf.x, <span class="at">y=</span>rf.y, <span class="at">stepFactor=</span><span class="fl">1.5</span>, <span class="at">improve=</span><span class="dv">0</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>mtry = 26  OOB error = 0.02347766 
+Searching left ...
+mtry = 18   OOB error = 0.02384886 
+-0.01581074 0 
+Searching right ...
+mtry = 39   OOB error = 0.02319901 
+0.0118687 0 
+mtry = 58   OOB error = 0.02370745 
+-0.02191656 0 </code></pre>
+</div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="ralb08b-randomforestmodel_files/figure-html/unnamed-chunk-2-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+<div class="cell-output cell-output-stdout">
+<pre><code>   mtry   OOBError
+18   18 0.02384886
+26   26 0.02347766
+39   39 0.02319901
+58   58 0.02370745</code></pre>
+</div>
+</div>
+<section id="question-5" class="level3">
+<h3 class="anchored" data-anchor-id="question-5">Question 5</h3>
+<p>What value of <code>mtry</code> produces the lowest out-of-bag error estimate in the command above? (Yes, this question only asks if you can read the graph!) <strong>Answer Below</strong></p>
+<p>Based on the output, the value of <code>mtry</code> that produces the lowest out-of-bag error is <strong>39</strong> (OOB error = 0.02319901).</p>
+</section>
+<section id="question-6" class="level3">
+<h3 class="anchored" data-anchor-id="question-6">Question 6</h3>
+<p><strong>Important: this step could run for a while depending on your choice. Only do it when you have some time to let the computer run.</strong> Run the <code>tuneRF</code> command again the code block below. This time, choose a value of <code>stepFactor</code> less than 1.5 but greater than 1. Describe how the output of <code>tuneRF</code> changed. What was the optimal value of <code>mtry</code> this time? <strong>Answer below.</strong></p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb10"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="fu">tuneRF</span>(<span class="at">x=</span>rf.x, <span class="at">y=</span>rf.y, <span class="at">stepFactor=</span><span class="fl">1.2</span>, <span class="at">improve=</span><span class="dv">0</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>mtry = 26  OOB error = 0.0237586 
+Searching left ...
+mtry = 22   OOB error = 0.02328319 
+0.02001023 0 
+mtry = 19   OOB error = 0.0238279 
+-0.02339527 0 
+Searching right ...
+mtry = 31   OOB error = 0.02257459 
+0.03043379 0 
+mtry = 37   OOB error = 0.02287432 
+-0.01327744 0 </code></pre>
+</div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="ralb08b-randomforestmodel_files/figure-html/unnamed-chunk-3-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+<div class="cell-output cell-output-stdout">
+<pre><code>   mtry   OOBError
+19   19 0.02382790
+22   22 0.02328319
+26   26 0.02375860
+31   31 0.02257459
+37   37 0.02287432</code></pre>
+</div>
+</div>
+<p>When running <code>tuneRF</code> with a smaller <code>stepFactor</code> of 1.2, the algorithm tested more values of <code>mtry</code> (16, 19, 22, 26, 31, 37) compared to the previous run. This finer search allowed us to find a slightly better “sweet spot.” The optimal value of <code>mtry</code> this time was <strong>31</strong>, which produced a lower OOB error (0.02266113) than the previous best of 39.</p>
+</section>
+</section>
+<section id="measuring-variable-importance" class="level1">
+<h1>Measuring Variable Importance</h1>
+<p>The random forest algorithm is a bit of a black box. It gives good predictions, but it’s hard to visualize a model that results from averaging hundreds of trees. It’s not always easy to gain <em>understanding</em> of your data set from the model.</p>
+<p>One nice feature of the random forest algorithm is that it gives you a nice measure of variable <em>importance</em>. Which variables decrease prediction error the most, and which contribute the least? Here’s how it works:</p>
+<ul>
+<li>For each variable, look at all branching points on all trees that split using that variable.</li>
+<li>At each of these branches, calculate the <em>decrease in error</em> that results from adding that split.</li>
+<li>Calculate the average decrease in error for all those branching points.</li>
+</ul>
+<p>To obtain a list of variable importances, first create your random forest model, then use the <code>importance</code> command. If you want a nice plot, use the <code>varImpPlot</code> command instead. The option n.var limits to only the most important variables.</p>
+<p>By the way, the chunk option “cache=TRUE” allows Quarto to avoid recalculating a chunk each time you render. This is handy if you are rendering a lot, since recalculating can take a lot of time.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb13"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>fit.rf <span class="ot">&lt;-</span> <span class="fu">randomForest</span>(<span class="at">x=</span>rf.x, <span class="at">y=</span>rf.y, <span class="at">ntree=</span><span class="dv">50</span>)</span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a><span class="fu">importance</span>(fit.rf)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>                   IncNodePurity
+MS_SubClass         2.882349e+00
+MS_Zoning           9.340044e-01
+Lot_Frontage        4.714323e-01
+Lot_Area            1.837560e+00
+Street              7.489569e-05
+Alley               1.691665e-01
+Lot_Shape           8.912985e-02
+Land_Contour        1.674825e-01
+Utilities           0.000000e+00
+Lot_Config          2.116326e-01
+Land_Slope          5.645241e-02
+Neighborhood        3.155598e+01
+Condition_1         1.314311e-01
+Condition_2         4.609814e-03
+Bldg_Type           1.358883e-01
+House_Style         2.847818e-01
+Overall_Qual        3.272771e+01
+Overall_Cond        3.359296e+00
+Year_Built          4.400981e+00
+Year_Remod_Add      1.628478e+00
+Roof_Style          1.964850e-01
+Roof_Matl           2.267782e-02
+Exterior_1st        1.165046e+00
+Exterior_2nd        1.110369e+00
+Mas_Vnr_Type        1.010349e-01
+Mas_Vnr_Area        8.028641e-01
+Exter_Qual          9.118950e+00
+Exter_Cond          4.861396e-01
+Foundation          3.700091e-01
+Bsmt_Qual           2.934616e+00
+Bsmt_Cond           2.110164e-01
+Bsmt_Exposure       3.124883e-01
+BsmtFin_Type_1      7.551328e-01
+BsmtFin_SF_1        1.906666e-01
+BsmtFin_Type_2      1.008905e-01
+BsmtFin_SF_2        6.407727e-02
+Bsmt_Unf_SF         1.142445e+00
+Total_Bsmt_SF       7.802327e+00
+Heating             3.520214e-02
+Heating_QC          2.046028e-01
+Central_Air         1.276188e+00
+Electrical          5.124145e-02
+First_Flr_SF        4.646550e+00
+Second_Flr_SF       2.065235e+00
+Low_Qual_Fin_SF     1.316859e-02
+Gr_Liv_Area         1.777675e+01
+Bsmt_Full_Bath      2.841498e-01
+Bsmt_Half_Bath      1.457285e-02
+Full_Bath           4.398094e-01
+Half_Bath           1.549130e-01
+Bedroom_AbvGr       3.934584e-01
+Kitchen_AbvGr       1.575392e-01
+Kitchen_Qual        3.365591e+00
+TotRms_AbvGrd       5.218434e-01
+Functional          1.490239e-01
+Fireplaces          1.051579e+00
+Fireplace_Qu        2.819116e+00
+Garage_Type         2.631980e+00
+Garage_Finish       2.866322e+00
+Garage_Cars         4.445769e+00
+Garage_Area         4.975054e+00
+Garage_Qual         7.365130e-02
+Garage_Cond         1.353626e+00
+Paved_Drive         1.649756e-01
+Wood_Deck_SF        3.472944e-01
+Open_Porch_SF       8.040846e-01
+Enclosed_Porch      3.031009e-01
+Three_season_porch  8.345887e-03
+Screen_Porch        1.455527e-01
+Pool_Area           4.965806e-02
+Pool_QC             6.381945e-02
+Fence               1.400652e-01
+Misc_Feature        2.921121e-02
+Misc_Val            1.665711e-02
+Mo_Sold             4.145365e-01
+Year_Sold           3.115926e-01
+Sale_Type           2.655562e-01
+Sale_Condition      6.384953e-01
+Longitude           6.670094e-01
+Latitude            9.772687e-01</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb15"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="fu">varImpPlot</span>(fit.rf, <span class="at">n.var=</span><span class="dv">20</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="ralb08b-randomforestmodel_files/figure-html/unnamed-chunk-4-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+<section id="question-7" class="level3">
+<h3 class="anchored" data-anchor-id="question-7">Question 7</h3>
+<p>In the first part of this lab, you identified two or three variables that you thought would be related to home prices. Where did your variables fall on the variable importance list? Did any of the variables listed as important surprise you? <strong>Answer below.</strong></p>
+<p>In the first part, we identified <code>Gr_Liv_Area</code>, <code>Garage_Cars</code>, and <code>Garage_Area</code> as strong predictors. Looking at the variable importance plot: - <strong><code>Gr_Liv_Area</code></strong> is extremely important, appearing near the top of the list. - <strong><code>Garage_Area</code></strong> and <strong><code>Garage_Cars</code></strong> are also very high up, confirming our earlier analysis. - <strong><code>Overall_Qual</code></strong> is the most important variable, which makes sense as it captures the overall quality of the house. - <strong><code>Total_Bsmt_SF</code></strong> is also a top predictor.</p>
+<p>It’s not surprising that <code>Overall_Qual</code> is #1, but it is interesting to see how much more important <code>Gr_Liv_Area</code> and <code>Total_Bsmt_SF</code> are compared to other features like <code>Year_Built</code>.</p>
+</section>
+<section id="question-8" class="level3">
+<h3 class="anchored" data-anchor-id="question-8">Question 8</h3>
+<p>Write R code to [a] create a random forest model using the optimal value of <code>mtry</code> that you identified using the <code>tuneRF</code> command (call it <code>fit.rf.best</code>), [b] display the out-of-bag error rates for <code>fit.rf</code> and <code>fit.rf.best</code>, and [c] plot the variable importance graph for your new <code>fit.rf.best</code>. Then, answer these questions: [d] Did <code>fit.rf.best</code> have a lower out-of-bag error rate? (It <em>should</em>, although random variation with only fifty trees might cause another result.) [e] Did any of the top variables change in importance when you used a different <code>mtry</code> value? <strong>Answer below.</strong></p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb16"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a>fit.rf.best <span class="ot">&lt;-</span> <span class="fu">randomForest</span>(<span class="at">x=</span>rf.x, <span class="at">y=</span>rf.y, <span class="at">mtry=</span><span class="dv">31</span>, <span class="at">ntree=</span><span class="dv">50</span>)</span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a><span class="co"># Display OOB error rates (taking sqrt to get RMSE-like scale)</span></span>
+<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(<span class="fu">paste</span>(<span class="st">"Default Model OOB Error:"</span>, <span class="fu">sqrt</span>(<span class="fu">last</span>(fit.rf<span class="sc">$</span>mse))))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] "Default Model OOB Error: 0.154326498290225"</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb18"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(<span class="fu">paste</span>(<span class="st">"Optimized Model OOB Error:"</span>, <span class="fu">sqrt</span>(<span class="fu">last</span>(fit.rf.best<span class="sc">$</span>mse))))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] "Optimized Model OOB Error: 0.152452054904111"</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb20"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Plot variable importance for the best model</span></span>
+<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a><span class="fu">varImpPlot</span>(fit.rf.best, <span class="at">n.var=</span><span class="dv">20</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="ralb08b-randomforestmodel_files/figure-html/unnamed-chunk-5-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+<p><strong>d)</strong> Yes, <code>fit.rf.best</code> (the optimized model) had a lower out-of-bag error rate compared to the default model. The default model had an error around 0.153, while the optimized model with <code>mtry=31</code> had an error around 0.150. This confirms that tuning <code>mtry</code> helped improve the model’s performance.</p>
+<p><strong>e)</strong> The top variables remained largely the same. <code>Overall_Qual</code>, <code>Gr_Liv_Area</code>, <code>Garage_Area</code>, and <code>Total_Bsmt_SF</code> are still the most important predictors. However, their relative ordering might shift slightly due to the randomness of the forest and the different <code>mtry</code> value allowing different variables to be considered at each split. For example, <code>Garage_Cars</code> might swap places with <code>Garage_Area</code>, but the core set of important features is consistent.</p>
+</section>
+</section>
+<section id="other-things-to-do-with-random-forests" class="level1">
+<h1>Other Things to Do with Random Forests</h1>
+<p>There are other useful things you can do with random forests. If you have a data set with missing values, you can use random forests to fill them in with plausible values. (Although this isn’t necessarily a magic bullet.) See the <code>rfImpute</code> command.</p>
+<p>Random forests can also be used to do variable selection based on variable importance measures. See the <code>rfcv</code> command.</p>
+<p>Finally, an interesting plot of similarity between data points (as measured by how often they end up in the same final node) can be created with the <code>MDSplot</code> command.</p>
+</section>
+
+</main>
+<!-- /main column -->
+<script id="quarto-html-after-body" type="application/javascript">
+window.document.addEventListener("DOMContentLoaded", function (event) {
+  const toggleBodyColorMode = (bsSheetEl) => {
+    const mode = bsSheetEl.getAttribute("data-mode");
+    const bodyEl = window.document.querySelector("body");
+    if (mode === "dark") {
+      bodyEl.classList.add("quarto-dark");
+      bodyEl.classList.remove("quarto-light");
+    } else {
+      bodyEl.classList.add("quarto-light");
+      bodyEl.classList.remove("quarto-dark");
+    }
+  }
+  const toggleBodyColorPrimary = () => {
+    const bsSheetEl = window.document.querySelector("link#quarto-bootstrap");
+    if (bsSheetEl) {
+      toggleBodyColorMode(bsSheetEl);
+    }
+  }
+  toggleBodyColorPrimary();  
+  const icon = "";
+  const anchorJS = new window.AnchorJS();
+  anchorJS.options = {
+    placement: 'right',
+    icon: icon
+  };
+  anchorJS.add('.anchored');
+  const isCodeAnnotation = (el) => {
+    for (const clz of el.classList) {
+      if (clz.startsWith('code-annotation-')) {                     
+        return true;
+      }
+    }
+    return false;
+  }
+  const onCopySuccess = function(e) {
+    // button target
+    const button = e.trigger;
+    // don't keep focus
+    button.blur();
+    // flash "checked"
+    button.classList.add('code-copy-button-checked');
+    var currentTitle = button.getAttribute("title");
+    button.setAttribute("title", "Copied!");
+    let tooltip;
+    if (window.bootstrap) {
+      button.setAttribute("data-bs-toggle", "tooltip");
+      button.setAttribute("data-bs-placement", "left");
+      button.setAttribute("data-bs-title", "Copied!");
+      tooltip = new bootstrap.Tooltip(button, 
+        { trigger: "manual", 
+          customClass: "code-copy-button-tooltip",
+          offset: [0, -8]});
+      tooltip.show();    
+    }
+    setTimeout(function() {
+      if (tooltip) {
+        tooltip.hide();
+        button.removeAttribute("data-bs-title");
+        button.removeAttribute("data-bs-toggle");
+        button.removeAttribute("data-bs-placement");
+      }
+      button.setAttribute("title", currentTitle);
+      button.classList.remove('code-copy-button-checked');
+    }, 1000);
+    // clear code selection
+    e.clearSelection();
+  }
+  const getTextToCopy = function(trigger) {
+      const codeEl = trigger.previousElementSibling.cloneNode(true);
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+  }
+  const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+    text: getTextToCopy
+  });
+  clipboard.on('success', onCopySuccess);
+  if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+    const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+      text: getTextToCopy,
+      container: window.document.getElementById('quarto-embedded-source-code-modal')
+    });
+    clipboardModal.on('success', onCopySuccess);
+  }
+    var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+    var mailtoRegex = new RegExp(/^mailto:/);
+      var filterRegex = new RegExp('/' + window.location.host + '/');
+    var isInternal = (href) => {
+        return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+    }
+    // Inspect non-navigation links and adorn them if external
+ 	var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+    for (var i=0; i<links.length; i++) {
+      const link = links[i];
+      if (!isInternal(link.href)) {
+        // undo the damage that might have been done by quarto-nav.js in the case of
+        // links that we want to consider external
+        if (link.dataset.originalHref !== undefined) {
+          link.href = link.dataset.originalHref;
+        }
+      }
+    }
+  function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+    const config = {
+      allowHTML: true,
+      maxWidth: 500,
+      delay: 100,
+      arrow: false,
+      appendTo: function(el) {
+          return el.parentElement;
+      },
+      interactive: true,
+      interactiveBorder: 10,
+      theme: 'quarto',
+      placement: 'bottom-start',
+    };
+    if (contentFn) {
+      config.content = contentFn;
+    }
+    if (onTriggerFn) {
+      config.onTrigger = onTriggerFn;
+    }
+    if (onUntriggerFn) {
+      config.onUntrigger = onUntriggerFn;
+    }
+    window.tippy(el, config); 
+  }
+  const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+  for (var i=0; i<noterefs.length; i++) {
+    const ref = noterefs[i];
+    tippyHover(ref, function() {
+      // use id or data attribute instead here
+      let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+      try { href = new URL(href).hash; } catch {}
+      const id = href.replace(/^#\/?/, "");
+      const note = window.document.getElementById(id);
+      if (note) {
+        return note.innerHTML;
+      } else {
+        return "";
+      }
+    });
+  }
+  const xrefs = window.document.querySelectorAll('a.quarto-xref');
+  const processXRef = (id, note) => {
+    // Strip column container classes
+    const stripColumnClz = (el) => {
+      el.classList.remove("page-full", "page-columns");
+      if (el.children) {
+        for (const child of el.children) {
+          stripColumnClz(child);
+        }
+      }
+    }
+    stripColumnClz(note)
+    if (id === null || id.startsWith('sec-')) {
+      // Special case sections, only their first couple elements
+      const container = document.createElement("div");
+      if (note.children && note.children.length > 2) {
+        container.appendChild(note.children[0].cloneNode(true));
+        for (let i = 1; i < note.children.length; i++) {
+          const child = note.children[i];
+          if (child.tagName === "P" && child.innerText === "") {
+            continue;
+          } else {
+            container.appendChild(child.cloneNode(true));
+            break;
+          }
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(container);
+        }
+        return container.innerHTML
+      } else {
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        return note.innerHTML;
+      }
+    } else {
+      // Remove any anchor links if they are present
+      const anchorLink = note.querySelector('a.anchorjs-link');
+      if (anchorLink) {
+        anchorLink.remove();
+      }
+      if (window.Quarto?.typesetMath) {
+        window.Quarto.typesetMath(note);
+      }
+      if (note.classList.contains("callout")) {
+        return note.outerHTML;
+      } else {
+        return note.innerHTML;
+      }
+    }
+  }
+  for (var i=0; i<xrefs.length; i++) {
+    const xref = xrefs[i];
+    tippyHover(xref, undefined, function(instance) {
+      instance.disable();
+      let url = xref.getAttribute('href');
+      let hash = undefined; 
+      if (url.startsWith('#')) {
+        hash = url;
+      } else {
+        try { hash = new URL(url).hash; } catch {}
+      }
+      if (hash) {
+        const id = hash.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note !== null) {
+          try {
+            const html = processXRef(id, note.cloneNode(true));
+            instance.setContent(html);
+          } finally {
+            instance.enable();
+            instance.show();
+          }
+        } else {
+          // See if we can fetch this
+          fetch(url.split('#')[0])
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.getElementById(id);
+            if (note !== null) {
+              const html = processXRef(id, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      } else {
+        // See if we can fetch a full url (with no hash to target)
+        // This is a special case and we should probably do some content thinning / targeting
+        fetch(url)
+        .then(res => res.text())
+        .then(html => {
+          const parser = new DOMParser();
+          const htmlDoc = parser.parseFromString(html, "text/html");
+          const note = htmlDoc.querySelector('main.content');
+          if (note !== null) {
+            // This should only happen for chapter cross references
+            // (since there is no id in the URL)
+            // remove the first header
+            if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+              note.children[0].remove();
+            }
+            const html = processXRef(null, note);
+            instance.setContent(html);
+          } 
+        }).finally(() => {
+          instance.enable();
+          instance.show();
+        });
+      }
+    }, function(instance) {
+    });
+  }
+      let selectedAnnoteEl;
+      const selectorForAnnotation = ( cell, annotation) => {
+        let cellAttr = 'data-code-cell="' + cell + '"';
+        let lineAttr = 'data-code-annotation="' +  annotation + '"';
+        const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+        return selector;
+      }
+      const selectCodeLines = (annoteEl) => {
+        const doc = window.document;
+        const targetCell = annoteEl.getAttribute("data-target-cell");
+        const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+        const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+        const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+        const lineIds = lines.map((line) => {
+          return targetCell + "-" + line;
+        })
+        let top = null;
+        let height = null;
+        let parent = null;
+        if (lineIds.length > 0) {
+            //compute the position of the single el (top and bottom and make a div)
+            const el = window.document.getElementById(lineIds[0]);
+            top = el.offsetTop;
+            height = el.offsetHeight;
+            parent = el.parentElement.parentElement;
+          if (lineIds.length > 1) {
+            const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+            const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+            height = bottom - top;
+          }
+          if (top !== null && height !== null && parent !== null) {
+            // cook up a div (if necessary) and position it 
+            let div = window.document.getElementById("code-annotation-line-highlight");
+            if (div === null) {
+              div = window.document.createElement("div");
+              div.setAttribute("id", "code-annotation-line-highlight");
+              div.style.position = 'absolute';
+              parent.appendChild(div);
+            }
+            div.style.top = top - 2 + "px";
+            div.style.height = height + 4 + "px";
+            div.style.left = 0;
+            let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+            if (gutterDiv === null) {
+              gutterDiv = window.document.createElement("div");
+              gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+              gutterDiv.style.position = 'absolute';
+              const codeCell = window.document.getElementById(targetCell);
+              const gutter = codeCell.querySelector('.code-annotation-gutter');
+              gutter.appendChild(gutterDiv);
+            }
+            gutterDiv.style.top = top - 2 + "px";
+            gutterDiv.style.height = height + 4 + "px";
+          }
+          selectedAnnoteEl = annoteEl;
+        }
+      };
+      const unselectCodeLines = () => {
+        const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+        elementsIds.forEach((elId) => {
+          const div = window.document.getElementById(elId);
+          if (div) {
+            div.remove();
+          }
+        });
+        selectedAnnoteEl = undefined;
+      };
+        // Handle positioning of the toggle
+    window.addEventListener(
+      "resize",
+      throttle(() => {
+        elRect = undefined;
+        if (selectedAnnoteEl) {
+          selectCodeLines(selectedAnnoteEl);
+        }
+      }, 10)
+    );
+    function throttle(fn, ms) {
+    let throttle = false;
+    let timer;
+      return (...args) => {
+        if(!throttle) { // first call gets through
+            fn.apply(this, args);
+            throttle = true;
+        } else { // all the others get throttled
+            if(timer) clearTimeout(timer); // cancel #2
+            timer = setTimeout(() => {
+              fn.apply(this, args);
+              timer = throttle = false;
+            }, ms);
+        }
+      };
+    }
+      // Attach click handler to the DT
+      const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+      for (const annoteDlNode of annoteDls) {
+        annoteDlNode.addEventListener('click', (event) => {
+          const clickedEl = event.target;
+          if (clickedEl !== selectedAnnoteEl) {
+            unselectCodeLines();
+            const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+            if (activeEl) {
+              activeEl.classList.remove('code-annotation-active');
+            }
+            selectCodeLines(clickedEl);
+            clickedEl.classList.add('code-annotation-active');
+          } else {
+            // Unselect the line
+            unselectCodeLines();
+            clickedEl.classList.remove('code-annotation-active');
+          }
+        });
+      }
+  const findCites = (el) => {
+    const parentEl = el.parentElement;
+    if (parentEl) {
+      const cites = parentEl.dataset.cites;
+      if (cites) {
+        return {
+          el,
+          cites: cites.split(' ')
+        };
+      } else {
+        return findCites(el.parentElement)
+      }
+    } else {
+      return undefined;
+    }
+  };
+  var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+  for (var i=0; i<bibliorefs.length; i++) {
+    const ref = bibliorefs[i];
+    const citeInfo = findCites(ref);
+    if (citeInfo) {
+      tippyHover(citeInfo.el, function() {
+        var popup = window.document.createElement('div');
+        citeInfo.cites.forEach(function(cite) {
+          var citeDiv = window.document.createElement('div');
+          citeDiv.classList.add('hanging-indent');
+          citeDiv.classList.add('csl-entry');
+          var biblioDiv = window.document.getElementById('ref-' + cite);
+          if (biblioDiv) {
+            citeDiv.innerHTML = biblioDiv.innerHTML;
+          }
+          popup.appendChild(citeDiv);
+        });
+        return popup.innerHTML;
+      });
+    }
+  }
+});
+</script>
+</div> <!-- /content -->
+
+
+
+
+</body></html>

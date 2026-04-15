@@ -1,0 +1,104 @@
+---
+title: "Homework 7 - Random Forest Model"
+author: "Roshan Thapa Magar"
+date: today
+format: pdf
+output-file: "Homework8-roshanthapamagar"
+output-ext: "pdf"
+editor: source
+---
+
+```{r}
+library(rpart)
+library(rpart.plot)
+library(randomForest)
+library(tidyverse)
+library(Metrics)
+```
+
+## 1. Import Data
+
+First, we need to load our data. We are using the `abalone_clean.csv` file. We will also convert the `sex` variable into a factor (category) so R knows how to handle it. Finally, we split the data into two parts: a training set (70% of the data) to build our models, and a testing set (30%) to see how well they work.
+
+```{r}
+# Read the data
+abalone_clean <- read_csv("../homeowrk 7/abalone_clean.csv", show_col_types = FALSE)
+
+# Prepare the data
+abalone_tree <- abalone_clean[c(2:11)] %>%
+  mutate(sex=as.factor(sex))
+
+set.seed(410)
+training <- sample_frac(abalone_tree, .7)
+testing <- anti_join(abalone_tree, training)
+```
+
+## 2. CART Trees
+
+### a) Create Tree Model
+
+Now we create a single decision tree (CART) to predict the sex of the abalone based on all the other variables (like size and weight).
+
+```{r}
+cart_model <- rpart(sex ~ ., data = training, na.action = na.rpart)
+```
+
+### b) Plot Tree
+
+Here is what our decision tree looks like. It shows the rules the model uses to make decisions. For example, it might check the height or shell weight first to decide if an abalone is an Infant, Male, or Female.
+
+```{r}
+rpart.plot(cart_model, extra = 104)
+```
+
+### c) Validate Model
+
+We test our tree model on the testing data to see how accurate it is.
+
+```{r}
+# Predict on test set
+cart_pred <- predict(cart_model, testing, type = "class")
+
+# Calculate classification error
+cart_ce <- ce(testing$sex, cart_pred)
+print(paste("CART Classification Error:", round(cart_ce, 4)))
+```
+
+The Classification Error for the CART model is approximately **0.4653** (or 46.53%). This means the model predicts the wrong sex about 46.5% of the time.
+
+## 3. Random Forest
+
+### a) Create Random Forest Model
+
+Now we try a Random Forest. Instead of just one tree, this method builds many trees and averages their predictions. This usually works better because it reduces the chance of the model memorizing the training data (overfitting).
+
+```{r}
+# Train the model
+rf_model <- randomForest(sex ~ ., data = training, na.action = na.rpart)
+```
+
+### b) Validate Model
+
+Let's see how the Random Forest performed on the same testing data.
+
+```{r}
+# Predict on test set
+rf_pred <- predict(rf_model, testing)
+
+# Calculate classification error
+rf_ce <- ce(testing$sex, rf_pred)
+print(paste("Random Forest Classification Error:", round(rf_ce, 4)))
+```
+
+The Classification Error for the Random Forest model is approximately **0.4477** (or 44.77%).
+
+## 4. Conclusion
+
+Comparing the two models:
+
+-   **CART Error**: 0.4653
+-   **Random Forest Error**: 0.4477
+
+The **Random Forest performed better** because it has a lower error rate (44.77% vs 46.53%).
+
+Random Forests are generally better than single trees because they use a technique called "bagging" (bootstrap aggregating). They build many different trees using random subsets of the data and random features. By averaging the results of all these trees, the Random Forest creates a more stable and accurate prediction that is less likely to be thrown off by noise in the data compared to a single decision tree.

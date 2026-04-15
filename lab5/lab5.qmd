@@ -1,0 +1,341 @@
+---
+title: "RLab 05 – Simple Linear Regression Model"
+author: "Roshan Thapa Magar"
+date: "Date"
+format: pdf
+output-file: "RLab05-roshan-thapamagar"
+output-ext: "pdf"
+editor: source
+---
+
+ 
+# Introduction
+	 	 	 	
+Let’s start with a question based on reading assignment for this module:
+
+### Question 0
+
+This question comes from exercises in section 23.2.1: One challenge with performing numerical optimization is that it’s only guaranteed to find one local optimum. What’s the problem with optimizing a three parameter model like this?
+
+model1 <- function(a, data) {
+a[1] + data$x * a[2] + a[3]
+}
+
+Hint: compare the formula in the code above with the simple linear regression formula.
+
+##### Answer to Question 0
+
+This model has too many parameters. Linear regression only needs two (intercept and slope), but this has three. Both a[1] and a[3] are constant terms, creating redundancy. The computer can't find the best values because there are infinitely many combinations that work.
+  
+We'll be using the `Salaries` data set that's part of the `carData` package,
+so the first thing to do will be to load the `carData` package using the
+`library` command.  We'll also need tidyverse. The `head` command will remind
+you of the data set.
+ 
+```{r}
+library(carData)
+library(tidyverse)
+head(Salaries)
+```
+ 
+# Scatterplots to Explore Data Sets
+ 
+## Scatterplots with the `pairs` Command
+ 
+Suppose you've never seen a particular data set before, and you'd like to quickly get a sense for which variables are related. The `pairs` command helps you do that by creating a _grid_ of scatter plots where each variable in a data frame is plotted against each other variable. The `pairs` command is part of base R and not part of `ggplot`. It's syntax is simple:
+ 
+`pairs(your data frame)`
+ 
+Let's look at the `Salaries` data frame:
+ 
+```{r}
+pairs(Salaries)
+```
+ 
+Tracing vertically and horizontally from a particular graph to the variable names on the diagonal tells you which variables are on the vertical and horizontal axes of the graphs themselves. You can see some graphs are more useful than others, depending on what kind of variables you started with.
+ 
+If there are variables you know you don't want to graph, you could use the tidyverse `select` command to create a new data frame with only those variables before you use `pairs`.
+ 
+### Question 1
+ 
+a) In a sentence, describe the relationship between `yrs.service` and `yrs.since.phd`.
+ 
+b) Why do you think there is a sharp edge on one side of the scatter plot of  `yrs..service` and `yrs.since.phd`?
+ 
+c) Which variable seems to have a stronger relationship (graphically) to `salary`--`yrs..service` or `yrs.since.phd`? Explain in a sentence.
+ 
+d) Which graph appears to be least helpful? What variables are being graphed in that graph, and what kind of variables are they?
+
+**Type Answers Below**
+
+a) Strong positive relationship between years of service and years since PhD. More years since PhD means more years of service since people start working after their degree.
+
+b) Sharp edge exists because you can't have more years of service than years since PhD. All points stay on or below the diagonal line.
+
+c) Years since PhD has stronger connection to salary than years of service. The salary vs years since PhD plot shows a clearer straight line pattern.
+
+d) Least helpful graph shows categorical variables like rank vs discipline. These are just categories, so plotting them against each other doesn't show relationships.
+  
+## Scatterplots with `ggplot`
+ 
+We've seen how to do something similar to what the `pairs` command does using `ggplot` and the `pivot_longer` command. If we know we always want the same "y" variable, but different "x" variables, we can put all the variables we want
+as "x" and then use faceting to create several graphs. In this case, let's
+make scatter plots of `salary` versus `yrs.since.phd` and `yrs.service`, then box
+plots of `salary` versus `rank`, `discipline` and `sex`.
+ 
+```{r}
+Salaries %>%
+  pivot_longer(c(rank, discipline, sex),names_to="xvar", values_to="xvalue") %>%
+  ggplot() +
+  geom_point(mapping=aes(x=xvalue, y=salary)) +
+  facet_wrap(facets="xvar")
+```
+ 
+```{r}
+Salaries %>%
+  pivot_longer(c(rank, discipline, sex),names_to="xvar", values_to="xvalue") %>%
+  ggplot() +
+  geom_boxplot(mapping=aes(x=xvalue, y=salary)) +
+  facet_wrap(facets="xvar")
+```
+ 
+This last one doesn't work so well with factor variables, since each graph
+includes _all_ factor variables on each graph, but we can still get the idea.
+It might be better, however, to make individual graphs.
+ 
+Let's focus just on `yrs.since.phd` and `salary` right now. We can use
+`stat_smooth` to add a line of best fit. The last
+option, `method="lm"`, ensures that we get a line and not a curve.
+ 
+```{r}
+Salaries %>%
+  ggplot() +
+  geom_point(mapping=aes(x=yrs.since.phd, y=salary)) +
+  stat_smooth(mapping=aes(x=yrs.since.phd, y=salary), method="lm")
+```
+ 
+It seems that salary is related to yrs.since.phd (and to yrs.service). Is that
+relationship different for male and female faculty members? We can add a
+`color` element to the mapping in `geom_point` and `stat_smooth` to find out:
+ 
+```{r}
+Salaries %>%
+  ggplot() +
+  geom_point(mapping=aes(x=yrs.since.phd, y=salary, color=sex)) +
+  stat_smooth(mapping=aes(x=yrs.since.phd, y=salary, color=sex), method="lm")
+```
+ 
+### Question 2
+ 
+You might note in the last plot that there are no women in the oldest segment of faculty. No female faculty member received their PhD more than 40 years ago. Modify the code from the last code chunk to limit the graph to only those faculty members for whom it has been less than 40 years since they received their PhD. Then answer these two questions: (a) After accounting for years since PhD, does it appear that there is a difference in pay between male and female faculty members? (b) Do the gray uncertainty regions for both lines overlap, and what does that tell you about the statistical significance of any male/female difference in salaries?
+**Code and answer below:**
+
+```{r}
+# Filter data to only include faculty with less than 40 years since PhD
+Salaries %>%
+  filter(yrs.since.phd < 40) %>%
+  ggplot() +
+  geom_point(mapping=aes(x=yrs.since.phd, y=salary, color=sex)) +
+  stat_smooth(mapping=aes(x=yrs.since.phd, y=salary, color=sex), method="lm")
+```
+
+a) After limiting to faculty with <40 years since PhD, there is a pay difference. Women (red line) consistently make less than men (blue line) with similar experience.
+
+b) The gray shaded areas don't overlap much, especially in middle/higher ranges. This means the pay difference is real, not random chance.
+ 
+# The Linear Correlation Coefficient
+ 
+You should remember from Basic Statistics that the _linear correlation
+coefficient_ (denoted by _r_) is a statistic that ranges from -1 to 1 and
+gives information on how two numeric variables are linearly related. Pictures
+speak louder than words:
+ 
+```{r}
+# You don't have to pay too much attention to this code--it just creates the
+# pictures you should look at (in the knit document).
+df = data.frame(x=c(-2:2, rnorm(30), -2:2), y=c(2:(-2), rnorm(30), -2:2),
+  r = c(rep("r=-1", 5), rep("r=0", 30), rep("r=1", 5)))
+ggplot(data=df) +
+  geom_point(mapping=aes(x=x, y=y)) +
+  facet_wrap(facets="r")
+```
+ 
+The `cor` function measures the linear correlation between two numeric variables. It has the form
+`cor(var1, var2)`
+ 
+Here are two ways to use the `cor` command to calculate the linear correlation
+between `salary` and `yrs.since.phd`. Note that the output is a bit different,
+depending on whether you give two vectors or one data frame, but you get the
+same information.
+ 
+```{r}
+cor(Salaries$salary, Salaries$yrs.since.phd)
+Salaries %>% select(salary, yrs.since.phd) %>% cor()
+```
+ 
+You can actually calculate the linear correlation between as many _numeric_
+variables as you like. You'll get a table of correlations.
+ 
+### Question 3
+ 
+Alter the code from the last code block so that the `select` command selects _all three_ numeric variables. Run the code. Then comment on this question: In the graphing section, you gave your opinion about whether it looked like salaries were more strongly related to `yrs.since.phd` or `yrs.service`. Does the linear correlation coefficients agree with the conclusion you made "by eye" from the graphs? Briefly explain.
+**Answer below**
+
+```{r}
+# Calculate correlation for all three numeric variables
+Salaries %>% select(salary, yrs.since.phd, yrs.service) %>% cor()
+```
+
+Yes, the correlations match what I saw visually. The correlation between salary and years since PhD is 0.42, while salary and years of service is 0.33. Years since PhD has slightly higher correlation, matching the visual observation that it looked more like a straight line.
+ 
+# Regression
+ 
+## The `lm` command
+ 
+The `lm` command (short for linear model) creates a predictive model that uses
+one or more explanatory variables to predict one response variable. We'll
+first look at the simplest case where there is one explanatory variable and
+one response variable.  In this case, the `lm` command has the format:
+ 
+`lm(response_var ~ explanatory_var, data=data_frame)`
+ 
+where you replace each of those with your actual variable names and data frame
+name. The formula `response_var ~ explanatory_var` is a shorthand for saying
+that you want the family of models where `response_var = b0 + b1 *
+explanatory_var`.
+ 
+Let's look are the model of `salary` as a function of `yrs.since.phd`. First
+we'll use the `lm` command to create the model, then we'll see what the result
+looks like.
+ 
+```{r}
+salary_mod <- lm(salary ~ yrs.since.phd, data=Salaries)
+summary(salary_mod)
+coef(salary_mod)
+```
+ 
+You can see that the `lm` command creates a lot of information. However, the
+`coef` command pulls out just the coefficients of the fitted model. R is
+telling us that the best linear model of `salary` as a function of
+`yrs.since.phd` is `salary = 91718.6854 + 985.3421 * yrs.since.phd`.
+ 
+## Visualizing Predictions and Residuals
+ 
+Each predictive model we might consider has its own set of details. However, one
+way that we can think about _all_ predictive models in a unified way is to
+consider their _predictions_ and _residuals_. Our collection of tidyverse
+packages contains the package `modelr` which provides a nice way to visualize
+predictions and residuals using familiar notation.
+ 
+Modelr might not be loaded when you load the general tidyverse packages, so
+let's load it:
+ 
+```{r}
+# install.packages("modelr", repos='https://mirror.las.iastate.edu/CRAN/)  #if needed
+library(modelr)
+```
+ 
+The two new commands we care about are
+ 
+`add_predictions(model_name)` and `add_residuals(model_name)`
+ 
+They can be added into a set of piped commands, and they add a new column to a
+data frame, either containing the model's predictions or its residuals. They
+work well when you're trying to visualize your model.
+ 
+The first code block just shows you how `add_predictions` works. Note the new
+`pred` column.  **Note that I would have to use the `lm` command to create
+`salary_mod` if I hadn't already done so!**
+ 
+```{r}
+head(Salaries %>% add_predictions(salary_mod))
+```
+ 
+The next code block adds the line of best fit to the scatter plot of `salary`
+versus `yrs.since phd`. We've already done this using the `stat_smooth`
+command, but the advantage of _this_ method is that it works for _any_
+predictive model we might choose.
+ 
+```{r}
+Salaries %>% add_predictions(salary_mod) %>%
+  ggplot() +
+  geom_point(mapping=aes(x=yrs.since.phd, y=salary)) +
+  geom_line(mapping=aes(x=yrs.since.phd, y=pred), color="red")
+```
+ 
+Based on this graph, it looks like the simple linear regression line may not
+capture everything happening in the data set. Large values of `yrs.since.phd`
+seem to actually have _lower_ salaries.
+ 
+One way to assess how well your model is doing is to graph its _residuals_.
+Remember that the residual is the difference between the _actual_ response
+variable and the _predicted_ value of the response variable.
+**If the model fits the data well, residuals should show no pattern and be
+vertically centered symmetrically around 0.**
+ 
+Let's use the `add_residuals` command to visualize residuals in our case. The
+new column added is called `resid`.
+ 
+```{r}
+Salaries %>% add_residuals(salary_mod) %>%
+  ggplot() +
+  geom_point(mapping = aes(x=yrs.since.phd, y=resid))
+```
+ 
+There is still a significant pattern in residuals! That means that our simple
+linear model is not a great fit to the data.
+ 
+## Using `lm` with Categorical (Factor) Variables
+ 
+The `lm` command can also be used with categorical predictor variables. For
+example, if I wanted to predict `salary` based on `rank`, I could do that:
+ 
+```{r}
+salary_mod2 <- lm(salary ~ rank, data=Salaries)
+coef(salary_mod2)
+```
+ 
+These coefficients have the following meaning:
+ 
+- Average base salary (salary for Assistant Professor) = 80775.99
+- Average for Associate Professor = 80775.99 + 13100.45 = 93876.44
+- Average for Full Professor = 80775.99 + 45996.12 = 126772.10
+ 
+We could graph them by putting a big red dot on the predicted salary for each
+group.
+ 
+```{r}
+Salaries %>% add_predictions(salary_mod2) %>%
+  ggplot() +
+  geom_point(mapping = aes(x=rank, y=salary)) +
+  geom_point(mapping = aes(x=rank, y=pred), color="red", size=3)
+```
+ 
+### Question 4
+ 
+Repeat the commands that created a linear model, showed coefficients, graphed predictions and graphed residuals, but this time to model `salary` as a function of `yrs.service`. Briefly explain whether the linear fit is a good fit in this example, referring to specific aspects of your output. **Answers and code below:**
+
+```{r}
+# Create linear model for salary as a function of yrs.service
+salary_mod_service <- lm(salary ~ yrs.service, data=Salaries)
+summary(salary_mod_service)
+coef(salary_mod_service)
+```
+
+```{r}
+# Graph predictions
+Salaries %>% add_predictions(salary_mod_service) %>%
+  ggplot() +
+  geom_point(mapping=aes(x=yrs.service, y=salary)) +
+  geom_line(mapping=aes(x=yrs.service, y=pred), color="red")
+```
+
+```{r}
+# Graph residuals
+Salaries %>% add_residuals(salary_mod_service) %>%
+  ggplot() +
+  geom_point(mapping = aes(x=yrs.service, y=resid))
+```
+
+The linear fit is **not good**. The residual plot shows a curved pattern instead of random dots around zero. The model over-predicts for people with few/many years of service but under-predicts for those in the middle range. We need a curved model, not a straight line.
+

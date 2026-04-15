@@ -1,0 +1,260 @@
+---
+title: "Group Project"
+author: "Yuchen Hsiao, Roshan Thapa Magar, Shiori Umekawa"
+date: today
+format: pdf
+output-file: "Bank Marketing Dataset Analysis"
+output-ext: "pdf"
+editor: source
+---
+
+```{r}
+library(tidyverse)
+```
+
+```{r}
+bank<-read.csv("bank_cleaned_minimal.csv")
+```
+
+The cleaned dataset is loaded successfully. This dataset contains 41,188 records with 55 features, including the original numerical variables and one-hot encoded categorical variables.
+
+```{r}
+#shows rows and colums
+dim(bank)
+#shows first few rows
+head(bank)
+```
+
+The dataset contains 41,188 observations and 55 variables. The first few rows show typical values: ages ranging from 37-57, call durations around 150-300 seconds, and most clients having 1 campaign contact. The dataset appears properly formatted and ready for analysis.
+
+```{r}
+#summary all variables
+summary(bank)
+```
+
+The summary statistics reveal key patterns: ages range from 17 to 98 years (mean \~40), call durations vary widely (0 to 4,918 seconds), and campaign contacts average about 2.6 per client. Most numerical variables show reasonable distributions with no obvious data quality issues.
+
+```{r}
+#checking missing value
+colSums(is.na(bank))
+```
+
+No missing values detected in any column. The data cleaning process successfully removed all "unknown" values and handled missing data, resulting in a complete dataset ready for analysis.
+
+```{r}
+#y= if clients are keep subscribing next term deposit 
+table(bank$y)
+prop.table(table(bank$y))
+```
+
+The target variable shows a class imbalance: 88.7% of clients did not subscribe ("no") while only 11.3% subscribed ("yes"). This means we have 36,548 non-subscribers and 4,640 subscribers. This imbalance should be considered when building predictive models.
+
+# Data Cleaning
+
+Most of the data cleaning was performed in Excel using standard features. The process involved handling missing values, creating binary variables, and basic data validation. The cleaned dataset has already been loaded above. Here's a summary of what was done:
+
+## Excel Data Cleaning Process Summary
+
+The following steps were performed in Excel before loading the data:
+
+```{r}
+# The cleaned dataset is already loaded as 'bank'
+# Set bank_clean to reference the cleaned data
+bank_clean <- bank
+
+# Display cleaned data summary
+cat("Cleaned Dataset Summary:\n")
+cat("- Rows:", nrow(bank_clean), "\n")
+cat("- Columns:", ncol(bank_clean), "\n")
+cat("- Missing values:", sum(is.na(bank_clean)), "\n")
+cat("- Target distribution:\n")
+print(table(bank_clean$y, useNA = "ifany"))
+```
+
+The cleaned dataset maintains all 41,188 records with 55 features. No missing values remain after cleaning. The target distribution shows 36,548 "no" responses (88.7%) and 4,640 "yes" responses (11.3%), confirming the data is ready for analysis.
+
+### Steps Performed in Excel:
+
+1.  **Missing values**: Find & Replace "unknown" with blanks
+2.  **Binary target variable**: Created y_binary column using IF formula (=IF(y="yes",1,0))
+3.  **Data validation**: Manual review for inconsistencies
+4.  **Duplicate removal**: Removed duplicate rows using Excel's Remove Duplicates feature
+
+# Exploratory Data Analysis
+
+This section explores the cleaned dataset through various visualizations to understand distributions, relationships, and trends in the data.
+
+## Histogram Visualizations
+
+Histograms show the distribution of key numerical variables, helping us understand the shape and spread of the data.
+
+```{r}
+# Age distribution
+ggplot(bank_clean, aes(x = age)) +
+  geom_histogram(bins = 30, fill = "steelblue", color = "black", alpha = 0.7) +
+  theme_minimal() +
+  labs(title = "Distribution of Client Ages",
+       x = "Age", y = "Frequency")
+```
+
+The age distribution shows a roughly normal shape centered around 35-45 years old, with most clients between 25-60 years. The distribution is slightly right-skewed with a few older clients (70+). This represents a typical working-age population for banking services.
+
+```{r}
+# Duration distribution
+ggplot(bank_clean, aes(x = duration)) +
+  geom_histogram(bins = 50, fill = "coral", color = "black", alpha = 0.7) +
+  theme_minimal() +
+  labs(title = "Distribution of Call Duration (seconds)",
+       x = "Duration (seconds)", y = "Frequency")
+```
+
+Call duration is heavily right-skewed with most calls lasting under 500 seconds (about 8 minutes). The mean duration is 258 seconds (4.3 minutes), but there are many short calls and a long tail of extended conversations. This pattern suggests most contacts are brief initial calls.
+
+```{r}
+# Campaign distribution
+ggplot(bank_clean, aes(x = campaign)) +
+  geom_histogram(bins = 20, fill = "lightgreen", color = "black", alpha = 0.7) +
+  theme_minimal() +
+  labs(title = "Distribution of Number of Contacts During Campaign",
+       x = "Number of Contacts", y = "Frequency")
+```
+
+The campaign distribution is highly right-skewed with most clients (over 80%) contacted only once during the campaign. The mean is 2.57 contacts, but very few clients received more than 5 contacts. This indicates the bank's strategy focuses on single-contact attempts for most clients.
+
+## Scatter Plot with Regression Line
+
+Scatter plots with regression lines help visualize relationships between pairs of variables and identify potential correlations. We examine several key relationships.
+
+Age vs Duration: Exploring whether client age relates to call duration.
+
+```{r}
+# Scatter plot: Age vs Duration with regression line
+ggplot(bank_clean, aes(x = age, y = duration)) +
+  geom_point(alpha = 0.3, color = "steelblue") +
+  geom_smooth(method = "lm", color = "red", se = TRUE) +
+  theme_minimal() +
+  labs(title = "Relationship Between Age and Call Duration",
+       subtitle = "With Linear Regression Line",
+       x = "Age", y = "Duration (seconds)")
+
+# Calculate correlation
+cor_age_duration <- cor(bank_clean$age, bank_clean$duration, use = "complete.obs")
+cat("Correlation between age and duration:", round(cor_age_duration, 3), "\n")
+```
+
+The correlation between age and call duration is essentially zero (-0.001), indicating no linear relationship. The regression line is nearly flat, showing that age does not predict call duration. This suggests that call length is determined by other factors like client interest or question complexity, not age.
+
+Duration vs Campaign: Investigating the relationship between call duration and number of campaign contacts.
+
+```{r}
+# Scatter plot: Duration vs Campaign with regression line
+ggplot(bank_clean, aes(x = duration, y = campaign)) +
+  geom_point(alpha = 0.3, color = "coral") +
+  geom_smooth(method = "lm", color = "darkgreen", se = TRUE) +
+  theme_minimal() +
+  labs(title = "Relationship Between Call Duration and Number of Campaign Contacts",
+       subtitle = "With Linear Regression Line",
+       x = "Duration (seconds)", y = "Number of Campaign Contacts")
+
+# Calculate correlation
+cor_duration_campaign <- cor(bank_clean$duration, bank_clean$campaign, use = "complete.obs")
+cat("Correlation between duration and campaign:", round(cor_duration_campaign, 3), "\n")
+```
+
+The correlation is weak but negative (-0.072), suggesting that longer calls might slightly reduce the number of follow-up contacts needed. However, the relationship is very weak, indicating that call duration and campaign frequency are largely independent factors. Most points cluster at low campaign numbers regardless of duration.
+
+Age vs Previous: Examining if age relates to the number of previous campaign contacts.
+
+```{r}
+# Scatter plot: Age vs Previous contacts with regression line
+ggplot(bank_clean, aes(x = age, y = previous)) +
+  geom_jitter(alpha = 0.3, color = "purple") +
+  geom_smooth(method = "lm", color = "orange", se = TRUE) +
+  theme_minimal() +
+  labs(title = "Relationship Between Age and Previous Contacts",
+       subtitle = "With Linear Regression Line",
+       x = "Age", y = "Number of Previous Contacts")
+
+# Calculate correlation
+cor_age_previous <- cor(bank_clean$age, bank_clean$previous, use = "complete.obs")
+cat("Correlation between age and previous contacts:", round(cor_age_previous, 3), "\n")
+```
+
+The correlation is very weak (0.024), showing almost no relationship between age and previous campaign contacts. Most clients have zero previous contacts regardless of age. Jittering reveals the discrete nature of the previous contacts variable, with most values concentrated at 0 and very few above 5.
+
+## Box Plot Visualizations
+
+Box plots compare the distribution of numerical variables across different subscription outcomes (yes/no), helping identify differences between subscribers and non-subscribers.
+
+Comparing age distributions between subscribers and non-subscribers.
+
+```{r}
+# Box plot: Age by subscription status
+ggplot(bank_clean, aes(x = y, y = age, fill = y)) +
+  geom_boxplot(alpha = 0.7) +
+  theme_minimal() +
+  labs(title = "Age Distribution by Subscription Status",
+       x = "Subscription (y)", y = "Age") +
+  scale_fill_manual(values = c("no" = "lightcoral", "yes" = "lightgreen"))
+```
+
+The box plots show similar age distributions for subscribers and non-subscribers, with medians around 39-41 years. The interquartile ranges overlap substantially, indicating age alone is not a strong predictor of subscription. Both groups have similar age spreads, suggesting age is not a key differentiating factor.
+
+Comparing call duration distributions between subscribers and non-subscribers.
+
+```{r}
+# Box plot: Duration by subscription status
+ggplot(bank_clean, aes(x = y, y = duration, fill = y)) +
+  geom_boxplot(alpha = 0.7) +
+  theme_minimal() +
+  labs(title = "Call Duration Distribution by Subscription Status",
+       x = "Subscription (y)", y = "Duration (seconds)") +
+  scale_fill_manual(values = c("no" = "lightcoral", "yes" = "lightgreen"))
+```
+
+This is a key finding: subscribers ("yes") have significantly longer call durations (median \~550 seconds) compared to non-subscribers (median \~220 seconds). The distributions barely overlap, indicating that call duration is a strong predictor of subscription success. Longer calls suggest higher engagement and interest.
+
+## Additional Trend Analysis
+
+Summary statistics by subscription status provide quantitative insights into differences between clients who subscribed and those who did not.
+
+```{r}
+# Summary statistics of key numerical features by subscription status
+library(dplyr)
+trend_summary <- bank_clean %>%
+  group_by(y) %>%
+  summarise(
+    Mean_Age = mean(age, na.rm = TRUE),
+    Mean_Duration = mean(duration, na.rm = TRUE),
+    Mean_Campaign = mean(campaign, na.rm = TRUE),
+    Mean_Previous = mean(previous, na.rm = TRUE),
+    .groups = "drop"
+  )
+print(trend_summary)
+```
+
+Key differences emerge: subscribers average 40.9 years (vs 39.9), have much longer call durations (553 vs 221 seconds), received fewer campaign contacts (2.05 vs 2.63), and had more previous contacts (0.49 vs 0.13). The most striking difference is call duration, which is 2.5 times longer for subscribers. This suggests quality conversations matter more than quantity of contacts.
+
+```{r}
+#Distribution of age to see the rang of people who aspect this research 
+ggplot(bank, aes(x=age))+
+  geom_histogram(fill="steelblue",bins=30,color="pink")+
+  theme_minimal()+
+  labs(title="Age Distribution of Clients")
+```
+
+This histogram confirms the age distribution pattern: a bell-shaped curve centered around 35-45 years, with the majority of clients in their 30s and 40s. The distribution represents a typical banking customer base spanning working-age adults, with fewer very young (under 25) or very old (over 70) clients.
+
+```{r}
+#subscription rate by job type
+# Load original data for this visualization (job column needed)
+bank_original <- read.csv("bank-additional/bank-additional/bank-additional-full.csv", sep = ";")
+
+ggplot(bank_original, aes(x=job, fill = y))+
+  geom_bar(position = "fill")+
+  coord_flip()+
+  labs(title="Term Desposit Subscription by Job Type", y= "Proportion")+
+  theme_minimal()
+```
+
+The bar chart reveals significant variation in subscription rates across job types. Retired clients show the highest subscription rate (around 25%), followed by students and management positions. Blue-collar workers and technicians show lower subscription rates. This suggests that job type is an important factor in predicting subscription success, with retired and student populations being more receptive to term deposits.

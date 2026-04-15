@@ -1,0 +1,222 @@
+---
+title: "'RLab 4b - Data Tidying"
+author: "Roshan Thapa Magar"
+date: today
+format: pdf
+output-file: "RLab04b-roshanthapamagar"
+output-ext: pdf
+editor: source
+---
+
+# Loading Libraries
+
+We'll need the `tidyverse` package for this lab. Notice that even though you did Lab 4a, you need to load it in again.
+
+```{r}
+library(tidyverse)
+```
+
+# Tidying Data
+
+We've talked in class about the idea that data sets should be "tidy." In other words, they should be organized so that
+
+-   each column represents a single variable,
+-   each row represents a single individual or observation,
+-   each cell contains one piece of information, and
+-   the data set is "rectangular."
+
+### Question 5
+
+According to chapter 12 in the textbook, what are the main 2 reasons for untidy data?
+
+#### Answer to question 5
+
+1.  Most people are not familiar with the principles of tidy data, and it is difficult to derive them on your own.
+2.  Data is often organized to facilitate some use other than analysis, such as data entry.
+
+The `tidyr` package (loaded by loading `tidyverse` contains commands that are especially helpful in tidying your data. Four that we'll look at in detail are
+
+-   pivot_longer
+-   pivot_wider
+-   separate
+-   unite
+
+## Pivot_longer
+
+To illustrate the `pivot_wider` and `pivot_longer` commands, consider the following situation. An exercise class instructor has measured participants' weights at the beginning of the class, midpoint of the class, and the end of the class. A small fake data set is shown below so that we can look at examples that fit on the screen.
+
+```{r}
+exercise <- data.frame(
+  Subject = c(1, 2, 3, 4, 5, 6),
+  Sex  = c("M", "M", "F", "M", "F", "F"),
+  Pre  = c(140, 160, 110, 180, 130, 100),
+  Mid  = c(130, 150, 100, 170, 120, 100),
+  Post = c(120, 145, 105, 160, 115, 100)
+  )
+exercise
+```
+
+This seems like a pretty good way to represent data. Each row is a subject, and each column is a variable...right? Well, sort of. This format is often useful and often even the way that software will want to see your data for some sorts of analysis.
+
+On the other hand, there's a lurking variable here that isn't represented in a column: the Pre/Mid/Post variable. Furthermore, one could consider the weight variable as a single variable, not three. In other words, we might (and often do) want to think of the data like this:
+
+| Subject | Sex | Time | Weight |
+|---------|-----|------|--------|
+| 1       | M   | Pre  | 140    |
+| 1       | M   | Mid  | 130    |
+| 1       | M   | Post | 120    |
+| 2       | M   | Pre  | 160    |
+| 2       | M   | Mid  | 150    |
+| 2       | M   | Post | 145    |
+
+etc...
+
+The `pivot_longer` command performs this change of shape. It has the format
+
+`pivot_longer(list of variables to add,  names_to=, values_to=)`
+
+-   The "list of variables to add" is the list of all variables that will now be in a single column. You can give a list of variables or use any of the other ways to specify variables that we saw with the `select` command earlier.
+-   The "names_to" variable is the variable that holds the old variable names once they're put together.
+-   The "values_to" variable is the variable that holds the data that's now been put into one column.
+-   Variables not listed in the command are not modified, but keep their own columns.
+
+It's easier to see with an example:
+
+```{r}
+exercise %>%
+pivot_longer(c("Pre", "Mid", "Post"), names_to="Time", values_to="Weight")
+```
+
+Why would you want to do this? There are fancy analysis commands (some of which we'll see later) that will want data in this format. A simpler example might be the following scenario:
+
+You want side-by-side histograms showing the distribution of weights in the three different time periods. Side-by-side graphs could be accomplished with the `facet_wrap` command in ggplot. However, facets can only be created using a categorical grouping variable (in a single column). Initially, Pre/Mid/Post were in three different columns. The `pivot_longer` command creates the single Pre/Mid/Post column that `facet_wrap` needs. Here's what the code looks like:
+
+```{r}
+exercise %>%
+  pivot_longer(c("Pre", "Mid", "Post"), names_to="Time", values_to="Weight") %>%
+  ggplot() +  	
+  geom_histogram(mapping=aes(x=Weight), binwidth=15) +
+  facet_wrap(facets="Time")
+# No data= option is specified in ggplot because a pipe is being used.
+```
+
+Note that this code doesn't change the original data set. It merely "tidies" it and feeds a copy to the ggplot command.
+
+You might also note that the graphs aren't in the order we might want! One of the ways to fix that is to use ‘factor’ command that will do the sorting. Unfortunately, this command needs to work with proper datafile, not the intermediate product of the pipeline.
+
+```{r}
+exercise1 <- exercise %>%
+  pivot_longer(c("Pre", "Mid", "Post"), names_to="Time", values_to="Weight")
+exercise1$Time <-factor(exercise1$Time, levels=c("Pre", "Mid", "Post"))
+  ggplot(exercise1) +
+  geom_histogram(mapping=aes(x=Weight), binwidth=15) +
+  facet_wrap(facets="Time")
+#Don’t forget to put back datafile name into ‘ggplot’ command
+```
+
+### Question 6
+
+Suppose you want to create a scatter plot showing Weight as a function of Time. The `geom_point` command will do this. However, you want to make one graph per subject so that you can chart individual progress. Adapt the code above to do this, and put your code in the code block below. Does it look like most subjects lost weight? **Answer below**
+
+```{r Q6}
+exercise1 <- exercise %>%
+  pivot_longer(c('Pre', 'Mid', 'Post'), names_to="Time", values_to="Weight")
+exercise1$Time <- factor(exercise1$Time, levels=c('Pre', 'Mid', 'Post'))
+
+ggplot(exercise1) +
+  geom_point(mapping=aes(x=Time, y=Weight)) +
+  facet_wrap(facets="Subject")
+```
+
+#### Answer to question 6
+
+Yes, it looks like most subjects lost weight. Subjects 1, 2, 4, and 5 show a clear downward trend. Subject 3 decreased overall but increased slightly from Mid to Post. Subject 6 remained constant.
+
+### Question 7
+
+Suppose you wish to make two scatter plots: One of midpoint weight vs. starting weight, and one of final weight vs. starting weight. Starting weight (`Pre`) should be on the x axis. One way to do this would be to gather only the `Mid` and `Post` variables, then create faceted scatter plots using the `key` variable to do the faceting. **Try that in the code block below:**
+
+```{r Q7}
+exercise %>%
+  pivot_longer(c('Mid', 'Post'), names_to="Time", values_to="Weight") %>%
+  ggplot() +
+  geom_point(aes(x=Pre, y=Weight)) +
+  facet_wrap(~Time)
+```
+
+## Pivot_wider
+
+The `pivot_wider` command reverses the effect of `pivot_longer.` Think of `pivot_wider` as making the data set wider (and ‘pivot_longer’ makes it "tall"). To see this in action, let's first create a permanent copy of the "tall" exercise data set after gathering:
+
+```{r}
+exercise_longer <- exercise %>%
+  pivot_longer(c("Pre", "Mid", "Post"), names_to="Time", values_to="Weight")
+exercise_longer
+```
+
+Now we'll reverse that operation with `pivot_wider`. The format of the `pivot_wider` command is as follows:
+
+`pivot_wider(names_from=, values_from=)`
+
+-   "names_from" is the name of the variable whose values should all become new column names.
+-   "values_from" is the name of the column holding the data that will then be spread among the new columns.
+
+Let's test:
+
+```{r}
+exercise_wider <- exercise_longer %>%
+pivot_wider(names_from=Time, values_from=Weight)
+exercise_wider
+```
+
+## Separate
+
+The `separate` command is useful when data sets have individual cells that contain more than one piece of information. For example, suppose you get a data set with one column that contains both first and last name:
+
+```{r}
+faculty <- data.frame(
+  Name = c("Thatcher, Scott", "Thatcher, Carol", "Beregovska, Tetyana",
+	"Alberts, Scott", "Kim, Hyun-Joo", "Decock, Dean"),
+  Years_at_Truman = c(20, 21, 3, 20, 20, 19)
+  )
+faculty
+```
+
+We want to create a variable for last name and a variable for first name separately. The `separate` command will do this. When used as part of a pipeline, separate needs two options:
+
+`separate(variable, into = vector of new variable names, sep = separator character)`
+
+So, to get last and first names, we can run the following code. Note that the result of separate is assigned back to the original data frame in this case because we want to change to be recorded permanently.
+
+```{r}
+faculty <- faculty %>% separate(Name, into=c("Last", "First"), sep=",")
+faculty
+```
+
+Dr. Alberts feels compelled to mention that he often misspells the word separate, and he has lost many hours of coding to this problem. Maybe you don't have the spelling problems that he does, but if you find that you are having problems, look through your code for **seperate**.
+
+## Unite
+
+You can also go the other way---smashing multiple columns into a single column. As our text mentions, this is often not as useful. Still here's a demonstration of the `unite` command. To use it, you must specify the name of the new column, columns that should be united and the separator that should be put between the original columns' values.
+
+`unite(col=Name of new column, columns to unite, sep=separator character)`
+
+Here's an example where columns for month, day and year are put together to make one date in the less-than-ideal way we write dates in the United States.
+
+```{r}
+month_day_yr <- data.frame(
+  Month = c(12, 8, 3, 9, 11, 10),
+  Day = c(31, 1, 3, 18, 10, 22),
+  Year = c(1971, 1994, 1989, 2003, 2009, 1015)
+  )
+month_day_yr
+month_day_yr %>% unite(col="Date", Month, Day, Year, sep="/")
+```
+
+### Question 8
+
+Write a unite command that takes the `month_day_yr` data frame and outputs dates in the preferred Year-Month-Day format that we've talked about in class. Don't worry about adding the leading 0's here---this is just practice with the unite command. **Answer in code block below**
+
+```{r Q8}
+month_day_yr %>% unite(col="Date", Year, Month, Day, sep="-")
+```

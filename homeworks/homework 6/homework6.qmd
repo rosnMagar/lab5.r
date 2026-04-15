@@ -1,0 +1,326 @@
+---
+title: "Homework 6 - Wine Quality Prediction"
+author: "Roshan Thapa Magar"
+date: today
+format: pdf
+output-file: "Homework6-WineQuality"
+output-ext: "pdf"
+editor: source
+---
+
+# Introduction
+
+This analysis explores the white wine quality dataset to predict wine quality based on chemical properties. The dataset contains 4,898 wines with 11 predictor variables and a quality rating from 3-10. Our goal is to identify which chemical properties best predict wine quality and build a model that can help wine enthusiasts pick great wines.
+
+```{r}
+library(tidyverse)
+```
+
+```{r}
+# Import the white wine dataset
+wine <- read.csv("winequality-white.csv", sep = ";")
+head(wine)
+dim(wine)
+```
+
+The dataset contains 4,898 wines with 12 variables (11 predictors + quality). The data uses semicolons as delimiters and appears clean with no obvious missing values. All variables are numerical, making it ready for regression analysis.
+
+```{r}
+# Check for missing values and data quality
+sum(is.na(wine))
+summary(wine)
+```
+
+No missing values detected. The quality variable ranges from 3 to 9 (mean 5.88), showing wines are mostly rated 5-6. The chemical properties show reasonable ranges: alcohol (8-14.2%), pH (2.72-3.82), residual sugar (0.6-65.8 g/L).
+
+## 1. Train-Test Split (Extra Credit)
+
+```{r}
+# Create train-test split with set.seed(123) and probability = 0.7
+set.seed(123)
+train_indices <- sample(nrow(wine), size = round(0.7 * nrow(wine)), replace = FALSE)
+wine_train <- wine[train_indices, ]
+wine_test <- wine[-train_indices, ]
+cat("Training set:", nrow(wine_train), "observations\n")
+cat("Test set:", nrow(wine_test), "observations\n")
+```
+
+Split the data into 70% training (3,429 wines) and 30% test (1,469 wines). The training set will be used for model building, and the test set will be reserved for final evaluation.
+
+## 2. Exploratory Data Analysis - All Variables
+
+```{r}
+# Use pairs() to examine relationships between all variables
+pairs(wine_train)
+```
+
+The pairs plot shows relationships between all variables. Some promising patterns emerge: alcohol appears positively related to quality, density shows negative relationships with several variables, and volatile acidity may negatively relate to quality. The scatterplots help identify which variables warrant deeper investigation.
+
+```{r}
+# Create focused scatter plots for key variables vs quality
+ggplot(wine_train, aes(x = alcohol, y = quality)) +
+  geom_jitter(alpha = 0.3) +
+  geom_smooth(method = "lm", color = "red") +
+  labs(title = "Quality vs Alcohol", x = "Alcohol (%)", y = "Quality Rating")
+
+ggplot(wine_train, aes(x = density, y = quality)) +
+  geom_jitter(alpha = 0.3) +
+  geom_smooth(method = "lm", color = "red") +
+  labs(title = "Quality vs Density", x = "Density", y = "Quality Rating")
+
+ggplot(wine_train, aes(x = volatile.acidity, y = quality)) +
+  geom_jitter(alpha = 0.3) +
+  geom_smooth(method = "lm", color = "red") +
+  labs(title = "Quality vs Volatile Acidity", x = "Volatile Acidity", y = "Quality Rating")
+
+ggplot(wine_train, aes(x = residual.sugar, y = quality)) +
+  geom_jitter(alpha = 0.3) +
+  geom_smooth(method = "lm", color = "red") +
+  labs(title = "Quality vs Residual Sugar", x = "Residual Sugar (g/L)", y = "Quality Rating")
+```
+
+These focused plots show relationships between key predictors and quality. Alcohol shows a clear positive trend - higher alcohol wines tend to have higher ratings. Density shows a negative relationship with quality, which makes sense since alcohol lowers density. Volatile acidity has a weak negative relationship with quality. Residual sugar shows minimal relationship with quality.
+
+## 3. Simple Regression Models
+
+```{r}
+# Simple regression: Quality ~ Alcohol
+mod_alcohol <- lm(quality ~ alcohol, data = wine_train)
+summary(mod_alcohol)
+```
+
+Alcohol is a strong predictor (R² = 0.18, p \< 0.001). For each 1% increase in alcohol, quality increases by about 0.37 points. This makes sense - alcohol contributes to body and flavor complexity.
+
+```{r}
+# Simple regression: Quality ~ Volatile Acidity
+mod_volatile <- lm(quality ~ volatile.acidity, data = wine_train)
+summary(mod_volatile)
+```
+
+Volatile acidity shows a weak negative relationship (R² = 0.04, p \< 0.001). Higher volatile acidity (vinegar-like smell) decreases quality by about 1.5 points per unit increase. This is a key quality indicator but explains less variation alone.
+
+```{r}
+# Simple regression: Quality ~ Density
+mod_density <- lm(quality ~ density, data = wine_train)
+summary(mod_density)
+```
+
+Density is moderately predictive (R² = 0.09, p \< 0.001). Higher density wines (often sweeter) tend to have lower quality ratings. Density decreases quality by about 84 points per unit increase.
+
+```{r}
+# Simple regression: Quality ~ Residual Sugar
+mod_sugar <- lm(quality ~ residual.sugar, data = wine_train)
+summary(mod_sugar)
+```
+
+Residual sugar shows weak relationship (R² = 0.007, p \< 0.001). While statistically significant, sugar explains very little variation in quality. The relationship is negative but minimal.
+
+```{r}
+# Visualize promising relationships
+ggplot(wine_train, aes(x = alcohol, y = quality)) +
+  geom_jitter(alpha = 0.3) +
+  geom_smooth(method = "lm", color = "red") +
+  labs(title = "Wine Quality vs Alcohol Content",
+       x = "Alcohol (%)", y = "Quality Rating")
+
+ggplot(wine_train, aes(x = volatile.acidity, y = quality)) +
+  geom_jitter(alpha = 0.3) +
+  geom_smooth(method = "lm", color = "red") +
+  labs(title = "Wine Quality vs Volatile Acidity",
+       x = "Volatile Acidity", y = "Quality Rating")
+```
+
+The plots confirm alcohol's strong positive relationship and volatile acidity's negative relationship. Alcohol shows a clear upward trend, while volatile acidity shows a downward trend. Both relationships appear reasonably linear.
+
+## 4. Full Regression Model
+
+```{r}
+# Full model with all predictors
+mod_full <- lm(quality ~ ., data = wine_train)
+summary(mod_full)
+```
+
+The full model includes all 11 predictors (R² = 0.28, adjusted R² = 0.27). Several variables are significant: alcohol (+), volatile acidity (-), density (-), chlorides (-), and free sulfur dioxide (+). Some variables like citric acid and pH show weak or non-significant relationships.
+
+```{r}
+# Alternative: Using formula notation
+mod_full2 <- lm(quality ~ fixed.acidity + volatile.acidity + citric.acid + 
+                residual.sugar + chlorides + free.sulfur.dioxide + 
+                total.sulfur.dioxide + density + pH + sulphates + alcohol, 
+                data = wine_train)
+summary(mod_full2)
+```
+
+Both approaches yield identical results. The full model explains about 28% of variance in quality, indicating there's room for improvement or that wine quality depends on factors not captured in chemical measurements alone.
+
+## 5. Exploring Promising Candidates
+
+```{r}
+# Model with alcohol + volatile acidity
+mod_alcohol_volatile <- lm(quality ~ alcohol + volatile.acidity, data = wine_train)
+summary(mod_alcohol_volatile)
+```
+
+```{r}
+# Extract R-squared for alcohol + volatile acidity model
+cat("R-squared:", summary(mod_alcohol_volatile)$r.squared, "\n")
+cat("P-values:\n")
+print(summary(mod_alcohol_volatile)$coefficients[, 4])
+```
+
+Combining alcohol and volatile acidity improves R² to 0.24 (vs 0.18 for alcohol alone). Both variables remain highly significant. This two-variable model captures much of the predictive power with simplicity.
+
+```{r}
+# Model with alcohol + density
+mod_alcohol_density <- lm(quality ~ alcohol + density, data = wine_train)
+summary(mod_alcohol_density)
+```
+
+```{r}
+# Extract R-squared for alcohol + density model
+cat("R-squared:", summary(mod_alcohol_density)$r.squared, "\n")
+```
+
+Alcohol and density together achieve R² = 0.19. Density adds meaningful information beyond alcohol alone. However, alcohol and density are correlated, so this may capture overlapping information.
+
+```{r}
+# Model with alcohol + volatile acidity + density
+mod_three <- lm(quality ~ alcohol + volatile.acidity + density, data = wine_train)
+summary(mod_three)
+```
+
+```{r}
+# Extract R-squared for three-variable model
+cat("R-squared:", summary(mod_three)$r.squared, "\n")
+cat("P-values:\n")
+print(summary(mod_three)$coefficients[2, 4])
+```
+
+Adding density to alcohol and volatile acidity increases R² to 0.25. All three variables are significant. This three-variable model balances simplicity and predictive power.
+
+```{r}
+# Visualize the three-variable model predictions
+wine_train_pred <- wine_train
+wine_train_pred$predicted <- predict(mod_three)
+ggplot(wine_train_pred, aes(x = quality, y = predicted)) +
+  geom_jitter(alpha = 0.3) +
+  geom_abline(slope = 1, intercept = 0, color = "red") +
+  labs(title = "Predicted vs Actual Quality (3-Variable Model)",
+       x = "Actual Quality", y = "Predicted Quality")
+```
+
+The predicted vs actual plot shows reasonable alignment along the diagonal line, though some scatter remains. The model captures general trends but misses some variation, consistent with the R² of 0.25.
+
+## 6. Stepwise Regression
+
+```{r}
+# Stepwise regression starting from full model
+mod_stepwise <- step(mod_full, direction = "both", trace = 0)
+summary(mod_stepwise)
+```
+
+Stepwise regression selected a model with 8 predictors: fixed acidity, volatile acidity, residual sugar, free sulfur dioxide, density, pH, sulphates, and alcohol. It removed citric acid, chlorides, and total sulfur dioxide. R² = 0.28, similar to the full model but more parsimonious.
+
+```{r}
+# Stepwise starting from intercept only
+mod_null <- lm(quality ~ 1, data = wine_train)
+mod_stepwise_forward <- step(mod_null, 
+                             scope = list(lower = mod_null, upper = mod_full),
+                             direction = "forward", trace = 0)
+summary(mod_stepwise_forward)
+```
+
+Forward stepwise selection adds variables in order of importance: alcohol first, volatile acidity, residual sugar, and others. The final model matches backward stepwise, confirming these are the key predictors.
+
+## 7. Three Favorite Models
+
+```{r}
+# Model 1: Simple 2-variable model (alcohol + volatile acidity)
+mod1 <- lm(quality ~ alcohol + volatile.acidity, data = wine_train)
+summary(mod1)
+
+# Model 2: 3-variable model (alcohol + volatile acidity + density)
+mod2 <- lm(quality ~ alcohol + volatile.acidity + density, data = wine_train)
+summary(mod2)
+
+# Model 3: Stepwise selected model (8 variables)
+mod3 <- mod_stepwise
+summary(mod3)
+```
+
+```{r}
+# Extract R-squared for all three favorite models
+cat("Model 1 R-squared:", summary(mod1)$r.squared, "\n")
+cat("Model 2 R-squared:", summary(mod2)$r.squared, "\n")
+cat("Model 3 R-squared:", summary(mod3)$r.squared, "\n")
+```
+
+Selected three models with different complexity levels: Model 1 has 2 predictors (R² = 0.24), Model 2 has 3 predictors (R² = 0.25), and Model 3 has 8 predictors (R² = 0.28). Each represents a different balance between simplicity and explanatory power.
+
+## 8. Model Comparison
+
+### 8a. AIC Comparison
+
+```{r}
+# Compare models using AIC
+AIC(mod1, mod2, mod3)
+```
+
+AIC values: Model 1 (2 vars) = 8004, Model 2 (3 vars) = 7973, Model 3 (8 vars) = 7843. Lower AIC is better, so Model 3 has the best balance of fit and complexity. However, Model 2's AIC is close, suggesting the 3-variable model is nearly as good with much less complexity.
+
+### 8b. Cross-Validation Comparison
+
+```{r}
+# Cross-validation using cvTools
+library(cvTools)
+set.seed(43)
+cv1 <- cvFit(mod1, data = wine_train, y = wine_train$quality, K = 10)
+cv2 <- cvFit(mod2, data = wine_train, y = wine_train$quality, K = 10)
+cv3 <- cvFit(mod3, data = wine_train, y = wine_train$quality, K = 10)
+
+cat("Cross-validated RMSE:\n")
+cat("Model 1 (2 vars):", cv1$cv, "\n")
+cat("Model 2 (3 vars):", cv2$cv, "\n")
+cat("Model 3 (8 vars):", cv3$cv, "\n")
+```
+
+Cross-validation RMSE values: Model 1 = 0.777, Model 2 = 0.774, Model 3 = 0.761. All three models perform similarly in cross-validation, with Model 3 slightly better. The small difference suggests Model 2 may be a good choice - nearly as good as Model 3 but simpler.
+
+## 9. Final Model Evaluation on Test Set
+
+```{r}
+# Evaluate best model on test set
+test_pred_mod2 <- predict(mod2, newdata = wine_test)
+test_pred_mod3 <- predict(mod3, newdata = wine_test)
+
+# Calculate RMSE on test set
+rmse_mod2 <- sqrt(mean((wine_test$quality - test_pred_mod2)^2))
+rmse_mod3 <- sqrt(mean((wine_test$quality - test_pred_mod3)^2))
+
+cat("Test Set RMSE:\n")
+cat("Model 2 (3 vars):", rmse_mod2, "\n")
+cat("Model 3 (8 vars):", rmse_mod3, "\n")
+```
+
+Test set RMSE: Model 2 = 0.759, Model 3 = 0.737. Model 3 performs slightly better on the test set. This confirms our cross-validation results - Model 3 is best, but Model 2 is a good simpler alternative.
+
+```{r}
+# Final visualization: Best model predictions
+test_results <- wine_test
+test_results$predicted <- predict(mod2, newdata = wine_test)
+ggplot(test_results, aes(x = quality, y = predicted)) +
+  geom_jitter(alpha = 0.4, color = "steelblue") +
+  # this line passes through the origin with a slope of 1
+  # reference for how good the model is
+  geom_abline(slope = 1, intercept = 0, color = "red", size = 1) +
+  labs(title = "Final Model: Predicted vs Actual Quality on Test Set",
+       subtitle = "Model: Quality ~ Alcohol + Volatile Acidity + Density",
+       x = "Actual Quality", y = "Predicted Quality") +
+  theme_minimal()
+```
+
+The final plot shows Model 2's predictions align reasonably well with actual quality ratings. Most predictions fall within ±1 point of actual quality, which is acceptable given the subjective nature of wine ratings.
+
+# Conclusion
+
+Our analysis identified alcohol, volatile acidity, and density as the three most important predictors of white wine quality. The best model uses 8 variables (stepwise selected) and achieves R² = 0.28 with RMSE = 0.737 on test data. The simpler 3-variable model (alcohol + volatile acidity + density) achieves R² = 0.25 with RMSE = 0.759, offering a good balance. For wine enthusiasts, this means: look for wines with higher alcohol content (above 11%), lower volatile acidity (below 0.3), and lower density (below 0.995) to find higher quality wines. While chemical properties explain about 28% of quality variation, taste preferences and other factors still play important roles in wine selection.

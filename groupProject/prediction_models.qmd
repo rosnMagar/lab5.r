@@ -1,0 +1,305 @@
+---
+title: "Bank Marketing Prediction Models"
+author: "Yuchen Hsiao, Roshan Thapa Magar, Shiori Umekawa"
+date: today
+format: pdf
+output-file: "Prediction Models Analysis"
+output-ext: "pdf"
+editor: source
+---
+
+# Introduction
+
+This document builds three prediction models to predict if clients will subscribe to a term deposit:
+
+1.  **Linear Regression** - Simple but not ideal for classification
+2.  **CART (Decision Tree)** - Easy to interpret with visual tree
+3.  **Random Forest** - Most accurate, combines multiple trees
+
+# Load Libraries and Data
+
+```{r setup, message=FALSE, warning=FALSE}
+library(tidyverse)      # For data manipulation
+library(rpart)          # For CART model
+library(rpart.plot)     # For visualizing decision tree
+library(randomForest)   # For Random Forest model
+library(cvTools)        # For cross-validation
+library(Metrics)        # For classification error metric
+```
+
+```{r load-data}
+# Load cleaned dataset
+bank <- read.csv("bank_cleaned_minimal.csv")
+
+# Check the data
+cat("Dataset dimensions:", dim(bank), "\n")
+cat("\nTarget variable distribution:\n")
+print(table(bank$y))
+
+# Convert target variable to factor for classification
+bank$y <- as.factor(bank$y)
+```
+
+The dataset has 41,188 observations. The target variable shows class imbalance: 88.7% did not subscribe ("no") and 11.3% subscribed ("yes").
+
+# Data Splitting
+
+```{r split-data}
+# Set seed for reproducibility
+set.seed(43)
+
+# Create 70% training, 30% test split
+train_index <- sample(1:nrow(bank), 0.7 * nrow(bank))
+train_data <- bank[train_index, ]
+test_data <- bank[-train_index, ]
+
+cat("Training set size:", nrow(train_data), "\n")
+cat("Test set size:", nrow(test_data), "\n")
+```
+
+We split the data into 70% training (28,831 observations) and 30% test (12,357 observations) to evaluate model performance on unseen data.
+
+# Model 1: Linear Regression
+
+Linear regression predicts a continuous outcome, but we'll use it for classification by setting a threshold at 0.5.
+
+```{r linear-regression}
+# Create binary version of target (0/1)
+train_data$y_binary <- ifelse(train_data$y == "yes", 1, 0)
+test_data$y_binary <- ifelse(test_data$y == "yes", 1, 0)
+
+# Build linear regression model using key predictors
+lm_model <- lm(y_binary ~ age + duration + campaign + previous + 
+                 emp.var.rate + cons.price.idx + cons.conf.idx + 
+                 euribor3m + nr.employed, 
+               data = train_data)
+
+# Model summary
+summary(lm_model)
+```
+
+```{r lm-predictions}
+# Make predictions on test set
+lm_predictions <- predict(lm_model, test_data)
+
+# Convert predictions to binary (threshold = 0.5)
+lm_pred_class <- ifelse(lm_predictions > 0.5, "yes", "no")
+lm_pred_class <- as.factor(lm_pred_class)
+
+# Create confusion matrix manually
+lm_conf_table <- table(Predicted = lm_pred_class, Actual = test_data$y)
+print(lm_conf_table)
+
+# Calculate accuracy
+lm_accuracy <- sum(diag(lm_conf_table)) / sum(lm_conf_table)
+cat("\nLinear Regression Accuracy:", round(lm_accuracy * 100, 2), "%\n")
+```
+
+The linear regression model shows which variables significantly predict subscription. Duration (call length) is highly significant, confirming our EDA findings.
+
+# Model 2: CART (Decision Tree)
+
+CART creates a decision tree that's easy to visualize and interpret.
+
+```{r cart-model}
+# Build CART model with constraints for a smaller, more interpretable tree
+cart_model <- rpart(y ~ age + duration + campaign + previous + 
+                      emp.var.rate + cons.price.idx + cons.conf.idx + 
+                      euribor3m + nr.employed,
+                    data = train_data,
+                    method = "class",
+                    control = rpart.control(cp = 0.01, maxdepth = 5))
+
+# Display tree structure
+print(cart_model)
+```
+
+```{r cart-plot, fig.width=10, fig.height=8}
+# Visualize the decision tree
+rpart.plot(cart_model, 
+           main = "Decision Tree for Term Deposit Subscription",
+           extra = 104,  # Show probabilities and percentages
+           box.palette = "GnBu",
+           shadow.col = "gray",
+           nn = TRUE)
+```
+
+The decision tree shows the most important splits. The first split is likely on duration, showing it's the strongest predictor.
+
+```{r cart-predictions}
+# Make predictions on test set
+cart_predictions <- predict(cart_model, test_data, type = "class")
+
+# Confusion matrix
+cart_conf_table <- table(Predicted = cart_predictions, Actual = test_data$y)
+print(cart_conf_table)
+
+# Calculate accuracy
+cart_accuracy <- sum(diag(cart_conf_table)) / sum(cart_conf_table)
+cat("\nCART Accuracy:", round(cart_accuracy * 100, 2), "%\n")
+```
+
+```{r cart-importance}
+# Variable importance
+cat("\nVariable Importance in CART:\n")
+print(cart_model$variable.importance)
+```
+
+The CART model provides clear decision rules. Variable importance shows which features the tree uses most for splitting.
+
+# Model 3: Random Forest
+
+Random Forest builds 500 decision trees and combines their predictions for better accuracy.
+
+```{r random-forest, message=FALSE}
+# Retrain Random Forest model with 500 trees
+cat("Retraining Random Forest with 500 trees...\n")
+rf_model <- randomForest(y ~ age + duration + campaign + previous + 
+                           emp.var.rate + cons.price.idx + cons.conf.idx + 
+                           euribor3m + nr.employed,
+                         data = train_data,
+                         ntree = 100,
+                         importance = TRUE)
+
+# Model summary
+print(rf_model)
+```
+
+The Random Forest summary shows the Out-of-Bag (OOB) error rate, which estimates how well the model performs without needing a separate validation set.
+
+```{r rf-predictions}
+# Make predictions on test set
+rf_predictions <- predict(rf_model, test_data)
+
+# Confusion matrix
+rf_conf_table <- table(Predicted = rf_predictions, Actual = test_data$y)
+print(rf_conf_table)
+
+# Calculate accuracy
+rf_accuracy <- sum(diag(rf_conf_table)) / sum(rf_conf_table)
+cat("\nRandom Forest Accuracy:", round(rf_accuracy * 100, 2), "%\n")
+```
+
+```{r rf-importance, fig.width=8, fig.height=6}
+# Variable importance
+cat("\nVariable Importance in Random Forest:\n")
+print(importance(rf_model))
+
+# Plot variable importance
+varImpPlot(rf_model, 
+           main = "Variable Importance in Random Forest",
+           pch = 19,
+           col = "steelblue")
+```
+
+The variable importance plot shows which features contribute most to predictions. Higher values indicate more important variables.
+
+# Cross-Validation
+
+To ensure our models are robust and not overfitting, we perform 5-fold cross-validation.
+
+```{r cross-validation, message=FALSE, warning=FALSE}
+# Set seed for reproducibility
+set.seed(123)
+K_folds <- 5
+R_reps <- 1
+
+# 1. Linear Model CV
+# Define cost function for binary classification from linear model
+ce_lm <- function(y, yHat) {
+  pred_class <- ifelse(yHat > 0.5, 1, 0)
+  return(mean(y != pred_class))
+}
+
+cat("Running CV for Linear Model...\n")
+# Note: cvFit uses the model call to re-fit. Ensure data is available.
+lm_cv <- cvFit(lm_model, data=train_data, y=train_data$y_binary, cost=ce_lm, K=K_folds, R=R_reps)
+lm_cv_err <- lm_cv$cv
+lm_cv_acc <- 1 - lm_cv_err
+
+# 2. CART CV
+cat("Running CV for CART...\n")
+cart_cv <- cvFit(cart_model, data=train_data, y=train_data$y, cost=ce, predictArgs=list(type="class"), K=K_folds, R=R_reps)
+cart_cv_err <- cart_cv$cv
+cart_cv_acc <- 1 - cart_cv_err
+
+# 3. Random Forest CV
+cat("Running CV for Random Forest...\n")
+# We use a smaller ntree for CV speed if needed, but here we use the existing model's settings (100 trees)
+# Note: cvFit will re-fit the model K times.
+rf_cv <- cvFit(rf_model, data=train_data, y=train_data$y, cost=ce, K=K_folds, R=R_reps)
+rf_cv_err <- rf_cv$cv
+rf_cv_acc <- 1 - rf_cv_err
+
+cat("\nCV Results:\n")
+cat("Linear Regression: Error =", round(lm_cv_err, 4), "| Accuracy =", round(lm_cv_acc * 100, 2), "%\n")
+cat("CART:              Error =", round(cart_cv_err, 4), "| Accuracy =", round(cart_cv_acc * 100, 2), "%\n")
+cat("Random Forest:     Error =", round(rf_cv_err, 4), "| Accuracy =", round(rf_cv_acc * 100, 2), "%\n")
+```
+
+# Model Comparison
+
+```{r comparison}
+# Create comparison table
+# Create comparison table
+comparison <- data.frame(
+  Model = c("Linear Regression", "CART (Decision Tree)", "Random Forest"),
+  Test_Accuracy = c(
+    round(lm_accuracy * 100, 2),
+    round(cart_accuracy * 100, 2),
+    round(rf_accuracy * 100, 2)
+  ),
+  CV_Error = c(
+    round(lm_cv_err, 4),
+    round(cart_cv_err, 4),
+    round(rf_cv_err, 4)
+  ),
+  CV_Accuracy = c(
+    round(lm_cv_acc * 100, 2),
+    round(cart_cv_acc * 100, 2),
+    round(rf_cv_acc * 100, 2)
+  )
+)
+
+print(comparison)
+```
+
+# Key Insights and Conclusions
+
+## Model Performance Summary
+
+1.  **Linear Regression**
+    -   Simple approach but not ideal for binary classification
+    -   Assumes linear relationships between predictors and outcome
+    -   Provides coefficient estimates showing variable effects
+    -   Accuracy: Lower than tree-based models
+2.  **CART (Decision Tree)**
+    -   Easy to interpret and visualize
+    -   Shows clear decision rules (if-then statements)
+    -   Can capture non-linear relationships
+    -   Accuracy: Better than linear regression
+3.  **Random Forest**
+    -   Combines multiple trees for robust predictions
+    -   Usually most accurate but less interpretable
+    -   Handles complex interactions between variables
+    -   Accuracy: Typically highest of the three models
+
+## Most Important Variables
+
+Based on all three models, the most important predictors are:
+
+-   **Duration** (call length) - Strongest predictor by far
+-   **Economic indicators** (euribor3m, nr.employed) - Market conditions matter
+-   **Previous contacts** - Past relationship with bank is important
+-   **Campaign contacts** - Number of contacts during campaign
+
+## Practical Implications
+
+-   **Longer calls indicate higher interest** - Focus on quality conversations
+-   **Economic conditions affect subscriptions** - Timing campaigns matters
+-   **Previous customers are more likely to subscribe** - Nurture existing relationships
+-   **Too many contacts can be counterproductive** - Don't over-contact clients
+
+## Conclusion
+
+The Random Forest model performed the best due to its ability to capture complex patterns and interactions between variables. However the CART model provides better interpretability, which is valuable for understanding customer behavior and making business decisions. Depending the user requirements, we can choose which model to use.

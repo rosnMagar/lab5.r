@@ -1,0 +1,30 @@
+ 
+We return to our friendly Tasmanian Abalone and their hard-to-identify sex characteristics:
+Abalone Dataset: n = 4177, variables = 10 (1 categorical, 1 integer, 8 numeric)       
+Someone in Tasmania collected 4,000 delicious measurements of abalone sizes
+Categorical: Sex (M, F, I),
+Integer: rings (in general, an abalone gets a new ring each year, sort of like a tree)
+Num: Length, Diameter, Height, whole.weight, shucked.weight, viscera.weight, shell.weight
+Units: mm and g.
+Explore this dataset using rpart and randomForest libraries to generate trees and forests.
+ 
+library(rpart); library(rpart.plot); library(randomForest); library(tidyverse); library(Metrics)
+abalone_clean <- read_csv("U:/_MT Student File Area/tberegovska/DATA222/abalone_clean.csv")
+abalone_tree <- abalone_clean[c(2:11)] %>%
+  mutate(sex=as.factor(sex))
+set.seed(410)                            	#this allows everyone to get the same sample
+training <-  sample_frac(abalone_tree, .7)
+testing<- anti_join(abalone_tree, training)
+ 
+1) Run the code above in a chunk to import the data set and get it ready.
+ 
+2) Make CART trees to predict sex (including Indeterminate) on the two sets:
+a) Use rpart (with na.action=na.rpart) to make a tree to predict sex on the training set data.
+b) Use the rpart.plot package to make a pretty tree (use extra=104). How does it look different from what was on your last homework?
+c) Use predict to validate the model (from the training set) on the test se. How did it do? (Probably use the ce command from the CART Lab.)
+3) Create a Random Forest model of Abalone sex:
+a) Use the randomForest command (with na.action=na.rpart).
+b) Use predict to validate the training model on the test se. How did it do? Better than CART?
+4) Turn this Quarto file into a pretty .pdf file. Be sure to explain why you think Random Forests or CART trees were better at predicting abalone sex.
+
+

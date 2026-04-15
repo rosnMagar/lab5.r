@@ -1,0 +1,172 @@
+---
+title: "Homework 7 - Abalone Sex Classification with Decision Trees"
+author: "Roshan Thapa Magar"
+date: today
+format: pdf
+output-file: "Homework7-roshanthapamagar"
+output-ext: "pdf"
+editor: source
+---
+
+# Introduction
+
+This analysis uses decision trees to predict abalone sex from physical measurements. The dataset contains 4,177 abalone with 10 variables: sex (M, F, I where I = immature), rings (integer), and 8 numeric measurements (length, diameter, height, weights, age). We'll compare models with all three sex categories versus models with only mature abalone (M and F).
+
+```{r}
+library(tidyverse)
+library(rpart)
+library(rpart.plot)
+```
+
+```{r}
+# Load the cleaned abalone dataset
+abalone_clean <- read.csv("abalone_clean.csv")
+head(abalone_clean)
+dim(abalone_clean)
+str(abalone_clean)
+names(abalone_clean)
+```
+
+The dataset has 4,177 observations with 11 variables. We'll remove the first index column, leaving 10 variables.
+
+## 1. Data Preparation
+
+```{r}
+# a) Eliminate the X1 variable
+abalone_tree <- abalone_clean[c(2:11)]
+head(abalone_tree)
+dim(abalone_tree)
+```
+
+```{r}
+# Check the distribution of sex categories
+table(abalone_tree$sex)
+prop.table(table(abalone_tree$sex))
+```
+
+```{r}
+# b) Make a second copy filtering out indeterminate (I) abalone
+abalone_MF <- filter(abalone_tree, sex != "I")
+dim(abalone_MF)
+table(abalone_MF$sex)
+```
+
+Created two datasets: abalone_tree (all 4,177 with M=1,528, F=1,307, I=1,342) and abalone_MF (2,835 mature abalone, M=1,528, F=1,307). Filtering out immature abalone lets us focus on predicting sex for mature abalone.
+
+## 2. CART Tree for Two-Gender Model (M and F)
+
+```{r}
+# Build CART tree on abalone_MF dataset
+set.seed(123)
+abalone_tree_MF <- rpart(sex ~ ., data = abalone_MF, method = "class")
+abalone_tree_MF
+```
+
+```{r}
+# a) Variable importance
+abalone_tree_MF$variable.importance
+importance_MF <- sort(abalone_tree_MF$variable.importance, decreasing = TRUE)
+```
+
+Variable importance shows which physical characteristics best predict sex.
+
+```{r}
+# Summary of the tree
+summary(abalone_tree_MF)
+```
+
+```{r}
+# b) Visualization using rpart.plot
+rpart.plot(abalone_tree_MF, main = "Decision Tree for Abalone Sex (M and F)", 
+           type = 2, extra = 104, fallen.leaves = TRUE, 
+           box.palette = "GnYlRd", shadow.col = "gray")
+```
+
+### Analysis of the Two-Gender Model
+
+**a) What variables are important? What predicts each gender?**
+
+```{r}
+# c) Most important variables (sorted)
+importance_MF
+```
+
+The most important variables are shucked.weight (28.64), diameter (27.24), whole.weight (25.96), length (22.64), and height (22.62). These size-related measurements are key predictors of sex in mature abalone.
+
+```{r}
+# Examine the tree structure to see what predicts each gender
+print(abalone_tree_MF)
+```
+
+The tree has 4 splits using height, shucked.weight, and diameter. Larger abalone (shucked.weight \>= 0.87325) are more likely to be male (71.3%), while smaller abalone with height \< 0.1025 are predicted as male (78.4%).
+
+## 3. CART Tree for Three-Gender Model (M, F, and I)
+
+```{r}
+# Build CART tree on abalone_tree dataset (all 3 genders)
+set.seed(123)
+abalone_tree_3 <- rpart(sex ~ ., data = abalone_tree, method = "class")
+abalone_tree_3
+```
+
+```{r}
+# a) Summary of the three-gender tree
+summary(abalone_tree_3)
+```
+
+```{r}
+# Variable importance for three-gender model
+abalone_tree_3$variable.importance
+sort(abalone_tree_3$variable.importance, decreasing = TRUE)
+```
+
+```{r}
+# Check which sex categories appear in the tree
+# Get the predicted classes at each node (1=F, 2=I, 3=M)
+abalone_tree_3$frame$yval
+# Check which classes are actually predicted
+cat("Unique predicted classes:", unique(abalone_tree_3$frame$yval), "\n")
+cat("F (1) is predicted:", 1 %in% abalone_tree_3$frame$yval, "\n")
+# Check the class probabilities at each node
+abalone_tree_3$frame$yval2
+```
+
+The tree only predicts classes 2 (I) and 3 (M), never class 1 (F). The model cannot effectively distinguish females from the other categories.
+
+```{r}
+# b) How is this model different from the 2-gender model?
+cat("Two-gender model complexity:", abalone_tree_MF$cptable[nrow(abalone_tree_MF$cptable), "nsplit"], "splits\n")
+cat("Three-gender model complexity:", abalone_tree_3$cptable[nrow(abalone_tree_3$cptable), "nsplit"], "splits\n")
+```
+
+```{r}
+# Compare variable importance between the two models
+importance_3 <- sort(abalone_tree_3$variable.importance, decreasing = TRUE)
+cat("\nTwo-gender model - Top 5 variables:\n")
+print(head(importance_MF, 5))
+cat("\nThree-gender model - Top 5 variables:\n")
+print(head(importance_3, 5))
+```
+
+**b) How is this model different from your 2-gender model? Which variables matter?**
+
+The three-gender model has only 1 split compared to the 2-gender model's 4 splits. The most important variable is viscera.weight (425.63), followed by whole.weight (374.46), diameter (353.05), and length (351.82). The tree uses a single split on viscera.weight: abalone with viscera.weight \>= 0.14425 are predicted as male, while those with viscera.weight \< 0.14425 are predicted as immature (63.1% I). The model never predicts F as the final class, suggesting it primarily separates immature from mature abalone rather than distinguishing between mature males and females.
+
+```{r}
+# c) Visualization using prp with colors
+prp(abalone_tree_3, main = "Decision Tree for Abalone Sex (M, F, and I)", 
+    type = 2, extra = 104, fallen.leaves = TRUE,
+    box.palette = list("Blues", "Reds", "Greens"), 
+    shadow.col = "gray", branch.lty = 3, 
+    branch.col = "gray", split.col = "black")
+```
+
+The colored visualization shows the tree only predicts M or I, never F.
+
+## 4. Discussion and Conclusions
+
+The two-gender model uses 4 splits with height, shucked.weight, and diameter, achieving reasonable separation between mature males and females. The three-gender model uses only 1 split on viscera.weight, separating immature from mature abalone but not distinguishing between mature males and females.
+
+Key findings: shucked.weight and diameter are most important for distinguishing mature males from females, while viscera.weight is most important for separating immature from mature abalone. The models can help identify abalone sex without invasive procedures.
+
+Limitations: the three-gender model only predicts M or I, never F. Decision trees may miss complex variable interactions and may not generalize to all abalone populations.

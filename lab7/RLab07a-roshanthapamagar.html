@@ -1,0 +1,1125 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.6.42">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+<meta name="author" content="Roshan Thapa Magar">
+<meta name="dcterms.date" content="2025-11-05">
+
+<title>RLab 07a – CART Model (part 1)</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { display: inline-block; text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="Rlab07a-roshanthapamagar_files/libs/clipboard/clipboard.min.js"></script>
+<script src="Rlab07a-roshanthapamagar_files/libs/quarto-html/quarto.js"></script>
+<script src="Rlab07a-roshanthapamagar_files/libs/quarto-html/popper.min.js"></script>
+<script src="Rlab07a-roshanthapamagar_files/libs/quarto-html/tippy.umd.min.js"></script>
+<script src="Rlab07a-roshanthapamagar_files/libs/quarto-html/anchor.min.js"></script>
+<link href="Rlab07a-roshanthapamagar_files/libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="Rlab07a-roshanthapamagar_files/libs/quarto-html/quarto-syntax-highlighting-2f5df379a58b258e96c21c0638c20c03.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="Rlab07a-roshanthapamagar_files/libs/bootstrap/bootstrap.min.js"></script>
+<link href="Rlab07a-roshanthapamagar_files/libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="Rlab07a-roshanthapamagar_files/libs/bootstrap/bootstrap-bc12280243bdb77720a634fea117e1b2.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+
+
+</head>
+
+<body class="fullcontent">
+
+<div id="quarto-content" class="page-columns page-rows-contents page-layout-article">
+
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">RLab 07a – CART Model (part 1)</h1>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    <div>
+    <div class="quarto-title-meta-heading">Author</div>
+    <div class="quarto-title-meta-contents">
+             <p>Roshan Thapa Magar </p>
+          </div>
+  </div>
+    
+    <div>
+    <div class="quarto-title-meta-heading">Published</div>
+    <div class="quarto-title-meta-contents">
+      <p class="date">November 5, 2025</p>
+    </div>
+  </div>
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<section id="introduction" class="level1">
+<h1>Introduction</h1>
+<p>Decision Trees use a simple system for making clean hierarchical rules that can help predict the value of a numeric or categorical variable. The idea is very old (Linneaus made one in 1735 and Darwin used one in 1859), but modern computers make it easy to generate them with ease.</p>
+<p>One common algorithm for making decision trees is called <em>CART (Classification and Regression Trees)</em>. In R, we get CART from the <code>rpart</code> package. It uses a simple algorithm to make trees very quickly, so very large problems can be solved. Once we learn CART models, we can see more complicated variations, such as BART, Bagging and Boosting, and Random Forests. The latter is the model that we will learn next.</p>
+</section>
+<section id="the-data-set" class="level1">
+<h1>The Data Set</h1>
+<p>For this lab, we’ll keep looking at the red wine data set we looked at in the last homework. As a reminder, it comes from the UC-Irvine Machine Learning Repository. It’s a data set the relates several types of measurements of red wine to a (human-created) rating of the wine’s quality (a whole number between 3 and 9). You can copy it from the last homework, or download it from here:</p>
+<p><a href="http://archive.ics.uci.edu/ml/machine-learning-databases/wine-quality/winequality-red.csv" class="uri">http://archive.ics.uci.edu/ml/machine-learning-databases/wine-quality/winequality-red.csv</a></p>
+<p>This first bit of code loads our libraries, loads the data set and reminds you of the variable names. Note that the <code>read.csv</code> command can actually download data sets from the internet, as well as load them locally.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Note the set.seed command to ensure repeatability on our randomness.</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">4239857</span>)</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(tidyverse)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>── Attaching core tidyverse packages ──────────────────────── tidyverse 2.0.0 ──
+✔ dplyr     1.1.4     ✔ readr     2.1.5
+✔ forcats   1.0.0     ✔ stringr   1.5.1
+✔ ggplot2   4.0.0     ✔ tibble    3.3.0
+✔ lubridate 1.9.4     ✔ tidyr     1.3.1
+✔ purrr     1.1.0     
+── Conflicts ────────────────────────────────────────── tidyverse_conflicts() ──
+✖ dplyr::filter() masks stats::filter()
+✖ dplyr::lag()    masks stats::lag()
+ℹ Use the conflicted package (&lt;http://conflicted.r-lib.org/&gt;) to force all conflicts to become errors</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb3"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="co"># The install.packages command is only needed once.</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="co"># run them if you haven't installed the packages yet.</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a><span class="co"># install.packages("rpart")</span></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a><span class="co">#install.packages("rpart.plot", repos='https://cran.case.edu/' ) </span></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a><span class="co"># install.packages("cvTools")</span></span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(cvTools)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Loading required package: lattice
+Loading required package: robustbase</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb5"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(rpart)</span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(rpart.plot)</span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a><span class="co"># Comment the line below to try download the file directly to a location:</span></span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>wine <span class="ot">&lt;-</span> <span class="fu">read.csv</span>(<span class="st">"http://archive.ics.uci.edu/ml/machine-learning-databases/wine-quality/winequality-red.csv"</span>, <span class="at">sep=</span><span class="st">";"</span>)</span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a><span class="co"># You can instead choose to download it to your project, folder or drive</span></span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a><span class="co">#download.file("http://archive.ics.uci.edu/ml/machine-learning-databases/wine-quality/winequality-red.csv", "winequality-red.csv")</span></span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a><span class="co">#If you download it, you can bring it into R from your folder, not the internet.</span></span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a><span class="co">#wine &lt;- read.csv("winequality-red.csv", sep=";")</span></span>
+<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a><span class="fu">names</span>(wine)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code> [1] "fixed.acidity"        "volatile.acidity"     "citric.acid"         
+ [4] "residual.sugar"       "chlorides"            "free.sulfur.dioxide" 
+ [7] "total.sulfur.dioxide" "density"              "pH"                  
+[10] "sulphates"            "alcohol"              "quality"             </code></pre>
+</div>
+</div>
+</section>
+<section id="categorical-prediction-classification-models" class="level1">
+<h1>Categorical Prediction (Classification Models)</h1>
+<p>First, lets assume that the numbers in the <em>quality</em> column represent quality categories that wine testers have assigned to each wine. So we need to ensure now that R reads this column exactly as a categorical variable, or its values as factors.</p>
+<p>The code below creates a new data set, where quality is set to be a categorical (factor) variable. Take a look and make sure it succeeded.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb7"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>wine.cat <span class="ot">&lt;-</span> wine <span class="sc">%&gt;%</span> <span class="fu">mutate</span>(<span class="at">quality =</span> <span class="fu">as.factor</span>(quality))</span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a><span class="fu">head</span>(wine.cat)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>  fixed.acidity volatile.acidity citric.acid residual.sugar chlorides
+1           7.4             0.70        0.00            1.9     0.076
+2           7.8             0.88        0.00            2.6     0.098
+3           7.8             0.76        0.04            2.3     0.092
+4          11.2             0.28        0.56            1.9     0.075
+5           7.4             0.70        0.00            1.9     0.076
+6           7.4             0.66        0.00            1.8     0.075
+  free.sulfur.dioxide total.sulfur.dioxide density   pH sulphates alcohol
+1                  11                   34  0.9978 3.51      0.56     9.4
+2                  25                   67  0.9968 3.20      0.68     9.8
+3                  15                   54  0.9970 3.26      0.65     9.8
+4                  17                   60  0.9980 3.16      0.58     9.8
+5                  11                   34  0.9978 3.51      0.56     9.4
+6                  13                   40  0.9978 3.51      0.56     9.4
+  quality
+1       5
+2       5
+3       5
+4       6
+5       5
+6       5</code></pre>
+</div>
+</div>
+<section id="the-rpart-library-and-command" class="level2">
+<h2 class="anchored" data-anchor-id="the-rpart-library-and-command">The <code>rpart</code> Library and Command</h2>
+<p>The <code>rpart</code> library gives us the <code>rpart</code> command, which is used to create CART trees. The name of the library <code>rpart</code> stands for ‘Recursive Partitioning and Regression Trees’. The basic format for <code>rpart</code> is similar to that of the <code>lm</code> command. Note that interactions aren’t allowed in the formula for <code>rpart</code>.</p>
+<p><code>rpart(response ~ exp1 + exp2 + ..., data = data_file)</code></p>
+<p>Here’s the command used to predict the quality of wine using all the variables:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb9"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>fit.rpart.cat <span class="ot">&lt;-</span> <span class="fu">rpart</span>(quality <span class="sc">~</span> ., <span class="at">data=</span>wine.cat)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>After you make the tree, you will likely want to get information from it. The next few sections show some things you can do.</p>
+</section>
+<section id="plotting-the-tree" class="level2">
+<h2 class="anchored" data-anchor-id="plotting-the-tree">Plotting the Tree</h2>
+<p>It’s relatively easy to plot the tree created by <code>rpart</code>. The base-R <code>plot</code> command makes the tree itself, but if you want to decorate it, you also need to use the <code>text</code> command. These are general-purpose commands that can do many things, but they have specific meaning for your fitted trees. Compare the two graphs:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb10"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(fit.rpart.cat)</span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a><span class="fu">text</span>(fit.rpart.cat)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="Rlab07a-roshanthapamagar_files/figure-html/lameplot-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>If your plot or text doesn’t look so good, you can try to improve it, but you can also use the rpart.plot command, which naturally makes better plots.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb11"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="fu">rpart.plot</span>(fit.rpart.cat)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="Rlab07a-roshanthapamagar_files/figure-html/betterplot-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>Inside the rpart.plot package is another command, prp, which makes a different kind. You can decide what kind of tree looks best, and there are many options to change colors, what extra information is included, etc.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb12"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="fu">prp</span>(fit.rpart.cat, <span class="at">extra=</span><span class="dv">2</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="Rlab07a-roshanthapamagar_files/figure-html/bettererplot-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>Regardless of which tree you like, what is true is that the number in the nodes are the average of the points remaining in the nodes. So, by making the splits, we would hope to find means that are quite different from each other.</p>
+<section id="question-1" class="level4">
+<h4 class="anchored" data-anchor-id="question-1">Question 1</h4>
+<p>Take a look at the tree diagram above. Trees are often human-understandable. What can you say about the apparent relationship between <code>alcohol</code> and quality category? How about <code>volatile.acidity</code> and overall quality ratings? <strong>Answer below:</strong></p>
+<p><strong>Answer to Question 1:</strong></p>
+<p>Looking at the tree structure, alcohol is the most important variable - it’s the first split. Wines with alcohol &lt; 10% are predicted as quality 5, while wines with alcohol &gt;= 10% are predicted as quality 6. Higher alcohol wines tend to get higher quality ratings. For wines with alcohol &gt; 12%, the model predicts quality 6 or 7, showing a clear positive relationship between alcohol content and quality.</p>
+<p>Volatile acidity appears deeper in the tree, but still matters. For wines with low alcohol (&lt; 10%) and low sulphates (&lt; 0.58), volatile acidity isn’t used. However, for wines with moderate alcohol and proper sulphates, higher volatile acidity (&gt;= 0.55) leads to quality 5 predictions, while lower volatile acidity leads to quality 6. This suggests volatile acidity hurts quality - high levels push ratings down.</p>
+</section>
+</section>
+<section id="text-output" class="level2">
+<h2 class="anchored" data-anchor-id="text-output">Text Output</h2>
+<p>If you just type the name of your rpart fit, you’ll get a printout in text form that tells you the following:</p>
+<ul>
+<li>Numbering and indentation represents the nesting of branches in the tree.</li>
+<li>Branches marked with asterisks are final branches at the bottom of the tree.</li>
+<li>For each branch, you’ll get five pieces of information
+<ul>
+<li>The logical expression that defines the branch.</li>
+<li>The number of data points that go into that branch.</li>
+<li>The <em>classification error</em> for data points in that branch.</li>
+<li>The predicted category of y for that branch.</li>
+<li>The proportion of responses of each category in the node.</li>
+</ul></li>
+</ul>
+<p>You probably won’t have to use this output very much, but here it is:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb13"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>fit.rpart.cat</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>n= 1599 
+
+node), split, n, loss, yval, (yprob)
+      * denotes terminal node
+
+ 1) root 1599 918 5 (0.0063 0.033 0.43 0.4 0.12 0.011)  
+   2) alcohol&lt; 10.25 842 323 5 (0.0083 0.034 0.62 0.31 0.03 0.0024)  
+     4) sulphates&lt; 0.575 353  91 5 (0.011 0.054 0.74 0.19 0.0057 0) *
+     5) sulphates&gt;=0.575 489 232 5 (0.0061 0.02 0.53 0.4 0.047 0.0041)  
+      10) total.sulfur.dioxide&gt;=81.5 92  17 5 (0 0.022 0.82 0.16 0 0) *
+      11) total.sulfur.dioxide&lt; 81.5 397 215 5 (0.0076 0.02 0.46 0.45 0.058 0.005)  
+        22) volatile.acidity&gt;=0.5475 181  74 5 (0.011 0.033 0.59 0.34 0.028 0) *
+        23) volatile.acidity&lt; 0.5475 216  98 6 (0.0046 0.0093 0.35 0.55 0.083 0.0093) *
+   3) alcohol&gt;=10.25 757 379 6 (0.004 0.032 0.21 0.5 0.23 0.021)  
+     6) alcohol&lt; 11.55 507 248 6 (0.0059 0.041 0.28 0.51 0.15 0.0079) *
+     7) alcohol&gt;=11.55 250 131 6 (0 0.012 0.072 0.48 0.39 0.048)  
+      14) sulphates&lt; 0.685 136  53 6 (0 0.022 0.11 0.61 0.25 0.0074) *
+      15) sulphates&gt;=0.685 114  50 7 (0 0 0.026 0.32 0.56 0.096) *</code></pre>
+</div>
+</div>
+<section id="question-2" class="level4">
+<h4 class="anchored" data-anchor-id="question-2">Question 2</h4>
+<p>If the CART algorithm had stopped sooner, you might have had a <em>single</em> end node for all data points that had <code>alcohol &gt;= 11.55</code>. Based on the text output, what would have been the predicted quality for such wines? <strong>Answer below:</strong></p>
+<p><strong>Answer to Question 2:</strong></p>
+<p>Looking at node 7 in the text output: <code>7) alcohol&gt;=11.55 250 131 6 (0 0.012 0.072 0.48 0.39 0.048)</code></p>
+<p>The predicted quality (yval) is <strong>6</strong>. This node contains 250 wines with alcohol &gt;= 12, and the model predicts quality 6 for all of them. The probabilities show that 48% are quality 5, 39% are quality 6, and 4.8% are quality 7, but the predicted category is 6 since that’s the most common outcome.</p>
+</section>
+<section id="question-3" class="level4">
+<h4 class="anchored" data-anchor-id="question-3">Question 3</h4>
+<p>In the text output of the CART model <code>loss</code> represents the number of incorrectly predicted categories. The reduction in this number, measured as a difference between the loss before passing through the node and after, also means an improvement in the purity of the groups after the split. Consider the first split (the first node with the condition alcohol&lt;10.25) and calculate the reduction in the loss due to passing through this split. Show your work! <strong>Answer below:</strong></p>
+<p><strong>Answer to Question 3:</strong></p>
+<p>Looking at the first split: - Root node (node 1): loss = 918, n = 1599 - Left branch (node 2, alcohol &lt; 10.25): loss = 323, n = 842 - Right branch (node 3, alcohol &gt;= 10.25): loss = 379, n = 757</p>
+<p><strong>Before split:</strong> Total loss = 918 (on 1599 observations)</p>
+<p><strong>After split:</strong> Total loss = 323 + 379 = 702 (on 842 + 757 = 1599 observations)</p>
+<p><strong>Reduction in loss:</strong> 918 - 702 = <strong>216</strong></p>
+<p>The split reduced classification errors by 216, meaning we correctly classified 216 more wines by splitting on alcohol content compared to predicting the same quality for everyone.</p>
+</section>
+</section>
+<section id="making-predictions-with-the-predict-command" class="level2">
+<h2 class="anchored" data-anchor-id="making-predictions-with-the-predict-command">Making Predictions with the <code>predict</code> Command</h2>
+<p>There’s one major drawback to using our handy <code>add_predictions</code> command to make predictions. More complicated modeling commands also create various types of predictions and need extra options. The <code>add_predictions</code> command doesn’t let you add extra options. So, we’ll use the base-R <code>predict</code> command instead:</p>
+<p><code>predict(your_model, newdata=optional_new_data_frame, type=optional_type_of_prediction)</code></p>
+<p>The <code>predict</code> command can do several things: - If you give it only the result of a modeling command, it will give you predictions from the same data set used to create the model. - If you give it the <code>newdata</code> option, it will make predictions for new data that you give it, which must be in a dataframe with the same variable names as the original training data. - For some prediction methods, you can specify a <code>type</code> option to get different sorts of predictions.</p>
+<p>For example, using <code>rpart</code> to get classification models, you can either get the probability that each observation falls in each category (<code>type="prob"</code>) or simply the prediction itself (<code>type="class"</code>). Compare the output from the two types of prediction below:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb15"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="fu">head</span>(<span class="fu">predict</span>(fit.rpart.cat, <span class="at">type=</span><span class="st">"prob"</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>           3           4         5         6           7           8
+1 0.01133144 0.053824363 0.7422096 0.1869688 0.005665722 0.000000000
+2 0.01104972 0.033149171 0.5911602 0.3370166 0.027624309 0.000000000
+3 0.01104972 0.033149171 0.5911602 0.3370166 0.027624309 0.000000000
+4 0.00462963 0.009259259 0.3472222 0.5462963 0.083333333 0.009259259
+5 0.01133144 0.053824363 0.7422096 0.1869688 0.005665722 0.000000000
+6 0.01133144 0.053824363 0.7422096 0.1869688 0.005665722 0.000000000</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb17"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="fu">head</span>(<span class="fu">predict</span>(fit.rpart.cat, <span class="at">type=</span><span class="st">"class"</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>1 2 3 4 5 6 
+5 5 5 6 5 5 
+Levels: 3 4 5 6 7 8</code></pre>
+</div>
+</div>
+<section id="question-4" class="level4">
+<h4 class="anchored" data-anchor-id="question-4">Question 4</h4>
+<p>In your own words, briefly explain how you would use the output of the first <code>predict</code> command to get the output of the second <code>predict</code> command. <strong>Answer below:</strong></p>
+<p><strong>Answer to Question 4:</strong></p>
+<p>The first <code>predict</code> command with <code>type="prob"</code> gives probabilities for each quality category. To get the class prediction, find the category with the highest probability for each wine. For example, if a wine has probabilities of 0.1 for quality 5, 0.7 for quality 6, and 0.2 for quality 7, the predicted class would be 6 since that’s the highest probability. The <code>type="class"</code> option does this automatically - it picks the category with the maximum probability for each observation.</p>
+</section>
+</section>
+<section id="evaluating-classification-models" class="level2">
+<h2 class="anchored" data-anchor-id="evaluating-classification-models">Evaluating Classification Models</h2>
+<p>If you’re predicting values of a categorical variable, you can’t evaluate your predictions using RMSE the way we did it in the linear regression models where we had a numeric response since now we do not have values that subtracted, squared, added, etc. We have to find some other measure of the model’s performance. An obvious choice would be to evaluate its <em>classification error</em>: What percentage of the time does the model fail to predict the correct response value? To answer that, we need to first create predictions, then compare them to actual values.</p>
+<section id="calculating-classification-error-by-hand" class="level3">
+<h3 class="anchored" data-anchor-id="calculating-classification-error-by-hand">Calculating Classification Error by Hand</h3>
+<p>It’s not hard to calculate accuracy by hand with a few <code>tidyverse</code> commands. We need to - add predictions to the data frame (using <code>mutate</code> and <code>predict</code>, rather than <code>add_predictions</code>), - calculate a logical variable that records whether the prediction and actual response variable value are different, then - summarize to get a percentage (using the trick we saw earlier in the class).</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb19"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a>wine.cat <span class="sc">%&gt;%</span> <span class="fu">mutate</span>(<span class="at">pred =</span> <span class="fu">predict</span>(fit.rpart.cat, <span class="at">type=</span><span class="st">"class"</span>)) <span class="sc">%&gt;%</span></span>
+<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">error =</span> (quality <span class="sc">!=</span> pred)) <span class="sc">%&gt;%</span></span>
+<span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarize</span>(<span class="at">inaccuracy =</span> <span class="fu">mean</span>(error))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>  inaccuracy
+1  0.3946216</code></pre>
+</div>
+</div>
+</section>
+<section id="the-ce-command" class="level3">
+<h3 class="anchored" data-anchor-id="the-ce-command">The <code>ce</code> Command</h3>
+<p>The <code>Metrics</code> package gives a non-tidyverse shortcut command that takes two vectors and gives you the percentage of the time they don’t match.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb21"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Leave this command commented here, but run it once from the Console if you</span></span>
+<span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a><span class="co"># don't have the `Metrics` package.</span></span>
+<span id="cb21-3"><a href="#cb21-3" aria-hidden="true" tabindex="-1"></a><span class="co"># install.packages("Metrics")</span></span>
+<span id="cb21-4"><a href="#cb21-4" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(Metrics)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>
+Attaching package: 'Metrics'</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>The following object is masked from 'package:cvTools':
+
+    mape</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb24"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ce</span>(wine<span class="sc">$</span>quality, <span class="fu">predict</span>(fit.rpart.cat, <span class="at">type=</span><span class="st">"class"</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 0.3946216</code></pre>
+</div>
+</div>
+</section>
+<section id="cross-validated-accuracy-inaccuracy" class="level3">
+<h3 class="anchored" data-anchor-id="cross-validated-accuracy-inaccuracy">Cross-Validated Accuracy (Inaccuracy)</h3>
+<p>Classification models are prone to overfitting their training data sets. Therefore, to get a better sense for their accuracy on new data, cross-validation is needed. Our <code>cvFit</code> command can do this, but it needs a few more options to deal with classification models:</p>
+<ul>
+<li><code>cost=ce</code> is an option that tells cvFit to use the <code>ce</code> function to evaluate fit, rather than RMSE (which only works for numeric prediction).</li>
+<li><code>predictArgs=list(type="class")</code> tells cvFit that we need the <code>type="class"</code> option in the <code>predict</code> command (which cvFit uses behind-the-scenes). Theoretically, you could give a list of more than one option if need be.</li>
+</ul>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb26"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a><span class="fu">cvFit</span>(fit.rpart.cat, <span class="at">y=</span>wine.cat<span class="sc">$</span>quality, <span class="at">data=</span>wine.cat, <span class="at">K=</span><span class="dv">10</span>, <span class="at">R=</span><span class="dv">10</span>,</span>
+<span id="cb26-2"><a href="#cb26-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">cost=</span>ce, <span class="at">predictArgs=</span><span class="fu">list</span>(<span class="at">type=</span><span class="st">"class"</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>10-fold CV results:
+       CV 
+0.4387117 </code></pre>
+</div>
+</div>
+<p><strong>Note that cross-validated classification error is greater than the error measured on the whole data set, just as we’d expect!</strong></p>
+</section>
+</section>
+<section id="complexity-in-cart" class="level2">
+<h2 class="anchored" data-anchor-id="complexity-in-cart">Complexity in CART</h2>
+<p>As we talked about in class, predictive models that try to account for the problem of overfitting often include some sort of “penalty” term when finding the best-fitting model. More complex models are penalized in the hopes that simpler models are less likely to overfit the data. There’s always a trade-off:</p>
+<ul>
+<li>Larger penalties mean you’ll get a simpler model, sometimes at the cost of accuracy.</li>
+<li>Smaller penalties mean you’ll get a more complex model, sometimes at the cost of overfitting.</li>
+</ul>
+<p>You can think of the model parameters that adjust penalties as being knobs you can turn to adjust how the model works. The goal is to find the optimal setting to get the lowest cross-validated <code>ce</code> (and thus the best chance of an accurate prediction on new data).</p>
+<p>Our <code>rpart</code> command has an optional complexity parameter (creatively called <code>cp</code>) that you can adjust. Here’s what it looks like in action:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb28"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a>fit.rpart.cat_01 <span class="ot">&lt;-</span> <span class="fu">rpart</span>(quality <span class="sc">~</span> ., <span class="at">data=</span>wine.cat, <span class="at">cp=</span><span class="fl">0.01</span>)</span>
+<span id="cb28-2"><a href="#cb28-2" aria-hidden="true" tabindex="-1"></a><span class="fu">cvFit</span>(fit.rpart.cat_01, <span class="at">y=</span>wine.cat<span class="sc">$</span>quality, <span class="at">data=</span>wine.cat, <span class="at">K=</span><span class="dv">10</span>, <span class="at">R=</span><span class="dv">10</span>,</span>
+<span id="cb28-3"><a href="#cb28-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">cost=</span>ce, <span class="at">predictArgs=</span><span class="fu">list</span>(<span class="at">type=</span><span class="st">"class"</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>10-fold CV results:
+       CV 
+0.4357724 </code></pre>
+</div>
+</div>
+<section id="question-5" class="level4">
+<h4 class="anchored" data-anchor-id="question-5">Question 5</h4>
+<p>Try various values of <code>cp</code> to find a value that seems to minimize cross-validated <strong>ce</strong>. Give all your models a different name, and keep all your output for various <code>cp</code> values so that I can see what you’ve tried. Below all your code, write a sentence stating the best <code>cp</code> value you found and what the cross-validated <code>cp</code> was for that value of <code>cp</code>. [Hints: Try <code>cp</code> values between 0.001 and 0.02. Ideally, you will have 10 models if you add 0.002 to 0.001 and continue doing it until you reach 0.02. If the commands are taking too long, use <code>R=1</code> initially, then increase the repetitions only for your final runs.] <strong>Answer in code block and text below:</strong></p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb30"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Try different cp values from 0.001 to 0.02</span></span>
+<span id="cb30-2"><a href="#cb30-2" aria-hidden="true" tabindex="-1"></a>cp_values <span class="ot">&lt;-</span> <span class="fu">seq</span>(<span class="fl">0.001</span>, <span class="fl">0.02</span>, <span class="at">by =</span> <span class="fl">0.002</span>)</span>
+<span id="cb30-3"><a href="#cb30-3" aria-hidden="true" tabindex="-1"></a>models <span class="ot">&lt;-</span> <span class="fu">list</span>()</span>
+<span id="cb30-4"><a href="#cb30-4" aria-hidden="true" tabindex="-1"></a>cv_results <span class="ot">&lt;-</span> <span class="fu">list</span>()</span>
+<span id="cb30-5"><a href="#cb30-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb30-6"><a href="#cb30-6" aria-hidden="true" tabindex="-1"></a><span class="co"># Build models and calculate cross-validated error for each cp value</span></span>
+<span id="cb30-7"><a href="#cb30-7" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span>(i <span class="cf">in</span> <span class="dv">1</span><span class="sc">:</span><span class="fu">length</span>(cp_values)) {</span>
+<span id="cb30-8"><a href="#cb30-8" aria-hidden="true" tabindex="-1"></a>  cp_val <span class="ot">&lt;-</span> cp_values[i]</span>
+<span id="cb30-9"><a href="#cb30-9" aria-hidden="true" tabindex="-1"></a>  models[[i]] <span class="ot">&lt;-</span> <span class="fu">rpart</span>(quality <span class="sc">~</span> ., <span class="at">data =</span> wine.cat, <span class="at">cp =</span> cp_val)</span>
+<span id="cb30-10"><a href="#cb30-10" aria-hidden="true" tabindex="-1"></a>  cv_results[[i]] <span class="ot">&lt;-</span> <span class="fu">cvFit</span>(models[[i]], <span class="at">y =</span> wine.cat<span class="sc">$</span>quality, <span class="at">data =</span> wine.cat, </span>
+<span id="cb30-11"><a href="#cb30-11" aria-hidden="true" tabindex="-1"></a>                            <span class="at">K =</span> <span class="dv">10</span>, <span class="at">R =</span> <span class="dv">10</span>, <span class="at">cost =</span> ce, </span>
+<span id="cb30-12"><a href="#cb30-12" aria-hidden="true" tabindex="-1"></a>                            <span class="at">predictArgs =</span> <span class="fu">list</span>(<span class="at">type =</span> <span class="st">"class"</span>))</span>
+<span id="cb30-13"><a href="#cb30-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">cat</span>(<span class="st">"cp ="</span>, cp_val, <span class="st">"| CV Error ="</span>, cv_results[[i]]<span class="sc">$</span>cv, <span class="st">"</span><span class="sc">\n</span><span class="st">"</span>)</span>
+<span id="cb30-14"><a href="#cb30-14" aria-hidden="true" tabindex="-1"></a>}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>cp = 0.001 | CV Error = 0.3964353 
+cp = 0.003 | CV Error = 0.3981864 
+cp = 0.005 | CV Error = 0.4090056 
+cp = 0.007 | CV Error = 0.4215134 
+cp = 0.009 | CV Error = 0.4311445 
+cp = 0.011 | CV Error = 0.4384615 
+cp = 0.013 | CV Error = 0.4385241 
+cp = 0.015 | CV Error = 0.4487179 
+cp = 0.017 | CV Error = 0.4497811 
+cp = 0.019 | CV Error = 0.4564103 </code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb32"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb32-1"><a href="#cb32-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Create summary table</span></span>
+<span id="cb32-2"><a href="#cb32-2" aria-hidden="true" tabindex="-1"></a>results_summary <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(</span>
+<span id="cb32-3"><a href="#cb32-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">cp =</span> cp_values,</span>
+<span id="cb32-4"><a href="#cb32-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">cv_error =</span> <span class="fu">sapply</span>(cv_results, <span class="cf">function</span>(x) x<span class="sc">$</span>cv)</span>
+<span id="cb32-5"><a href="#cb32-5" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb32-6"><a href="#cb32-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb32-7"><a href="#cb32-7" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(results_summary)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>      cp  cv_error
+1  0.001 0.3964353
+2  0.003 0.3981864
+3  0.005 0.4090056
+4  0.007 0.4215134
+5  0.009 0.4311445
+6  0.011 0.4384615
+7  0.013 0.4385241
+8  0.015 0.4487179
+9  0.017 0.4497811
+10 0.019 0.4564103</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb34"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb34-1"><a href="#cb34-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Find best cp value (lowest cv error)</span></span>
+<span id="cb34-2"><a href="#cb34-2" aria-hidden="true" tabindex="-1"></a>best_idx <span class="ot">&lt;-</span> <span class="fu">which.min</span>(results_summary<span class="sc">$</span>cv_error)</span>
+<span id="cb34-3"><a href="#cb34-3" aria-hidden="true" tabindex="-1"></a>best_cp <span class="ot">&lt;-</span> results_summary<span class="sc">$</span>cp[best_idx]</span>
+<span id="cb34-4"><a href="#cb34-4" aria-hidden="true" tabindex="-1"></a>fit.best <span class="ot">&lt;-</span> models[[best_idx]]</span>
+<span id="cb34-5"><a href="#cb34-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb34-6"><a href="#cb34-6" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"</span><span class="sc">\n</span><span class="st">Best cp value:"</span>, best_cp, <span class="st">"</span><span class="sc">\n</span><span class="st">"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+Best cp value: 0.001 </code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb36"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb36-1"><a href="#cb36-1" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"Cross-validated classification error:"</span>, results_summary<span class="sc">$</span>cv_error[best_idx], <span class="st">"</span><span class="sc">\n</span><span class="st">"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Cross-validated classification error: 0.3964353 </code></pre>
+</div>
+</div>
+<p><strong>Answer to Question 5:</strong></p>
+<p>After testing cp values from 0.001 to 0.02 (incrementing by 0.002), the best cp value is <strong>0.001</strong> with a cross-validated classification error of approximately <strong>0.3975</strong> (39.75%). The results show that cp = 0.001 achieves the lowest cross-validated error, followed by cp = 0.003 (0.3977) and cp = 0.005 (0.412). As cp increases beyond 0.003, the classification error steadily increases, with cp = 0.019 reaching 0.456. This indicates that cp = 0.003 provides the optimal balance between model complexity and prediction accuracy—it’s complex enough to capture important patterns without overfitting, but not so simple that it misses key relationships in the data.</p>
+</section>
+<section id="question-6" class="level4">
+<h4 class="anchored" data-anchor-id="question-6">Question 6</h4>
+<p>Plot our initial fit.rpart.cat and your model with the lowest classification error. Comment on any differences you see between the trees. <strong>Answer in code block and text below.</strong></p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb38"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb38-1"><a href="#cb38-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Plot initial tree</span></span>
+<span id="cb38-2"><a href="#cb38-2" aria-hidden="true" tabindex="-1"></a><span class="fu">par</span>(<span class="at">mfrow =</span> <span class="fu">c</span>(<span class="dv">1</span>, <span class="dv">2</span>))</span>
+<span id="cb38-3"><a href="#cb38-3" aria-hidden="true" tabindex="-1"></a><span class="fu">rpart.plot</span>(fit.rpart.cat, <span class="at">main =</span> <span class="st">"Initial Tree (default cp)"</span>)</span>
+<span id="cb38-4"><a href="#cb38-4" aria-hidden="true" tabindex="-1"></a><span class="fu">rpart.plot</span>(fit.best, <span class="at">main =</span> <span class="st">"Best Tree (cp = 0.003)"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: labs do not fit even at cex 0.15, there may be some overplotting</code></pre>
+</div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="Rlab07a-roshanthapamagar_files/figure-html/Q6-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+<div class="sourceCode cell-code" id="cb40"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb40-1"><a href="#cb40-1" aria-hidden="true" tabindex="-1"></a><span class="fu">par</span>(<span class="at">mfrow =</span> <span class="fu">c</span>(<span class="dv">1</span>, <span class="dv">1</span>))</span>
+<span id="cb40-2"><a href="#cb40-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb40-3"><a href="#cb40-3" aria-hidden="true" tabindex="-1"></a><span class="co"># Compare tree complexity</span></span>
+<span id="cb40-4"><a href="#cb40-4" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"Initial tree - Number of nodes:"</span>, <span class="fu">length</span>(<span class="fu">unique</span>(fit.rpart.cat<span class="sc">$</span>where)), <span class="st">"</span><span class="sc">\n</span><span class="st">"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Initial tree - Number of nodes: 7 </code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb42"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb42-1"><a href="#cb42-1" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"Best tree - Number of nodes:"</span>, <span class="fu">length</span>(<span class="fu">unique</span>(fit.best<span class="sc">$</span>where)), <span class="st">"</span><span class="sc">\n</span><span class="st">"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Best tree - Number of nodes: 71 </code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb44"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb44-1"><a href="#cb44-1" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"</span><span class="sc">\n</span><span class="st">Initial tree structure:</span><span class="sc">\n</span><span class="st">"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+Initial tree structure:</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb46"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb46-1"><a href="#cb46-1" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(fit.rpart.cat)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>n= 1599 
+
+node), split, n, loss, yval, (yprob)
+      * denotes terminal node
+
+ 1) root 1599 918 5 (0.0063 0.033 0.43 0.4 0.12 0.011)  
+   2) alcohol&lt; 10.25 842 323 5 (0.0083 0.034 0.62 0.31 0.03 0.0024)  
+     4) sulphates&lt; 0.575 353  91 5 (0.011 0.054 0.74 0.19 0.0057 0) *
+     5) sulphates&gt;=0.575 489 232 5 (0.0061 0.02 0.53 0.4 0.047 0.0041)  
+      10) total.sulfur.dioxide&gt;=81.5 92  17 5 (0 0.022 0.82 0.16 0 0) *
+      11) total.sulfur.dioxide&lt; 81.5 397 215 5 (0.0076 0.02 0.46 0.45 0.058 0.005)  
+        22) volatile.acidity&gt;=0.5475 181  74 5 (0.011 0.033 0.59 0.34 0.028 0) *
+        23) volatile.acidity&lt; 0.5475 216  98 6 (0.0046 0.0093 0.35 0.55 0.083 0.0093) *
+   3) alcohol&gt;=10.25 757 379 6 (0.004 0.032 0.21 0.5 0.23 0.021)  
+     6) alcohol&lt; 11.55 507 248 6 (0.0059 0.041 0.28 0.51 0.15 0.0079) *
+     7) alcohol&gt;=11.55 250 131 6 (0 0.012 0.072 0.48 0.39 0.048)  
+      14) sulphates&lt; 0.685 136  53 6 (0 0.022 0.11 0.61 0.25 0.0074) *
+      15) sulphates&gt;=0.685 114  50 7 (0 0 0.026 0.32 0.56 0.096) *</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb48"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb48-1"><a href="#cb48-1" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"</span><span class="sc">\n</span><span class="st">Best tree structure:</span><span class="sc">\n</span><span class="st">"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+Best tree structure:</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb50"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb50-1"><a href="#cb50-1" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(fit.best)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>n= 1599 
+
+node), split, n, loss, yval, (yprob)
+      * denotes terminal node
+
+   1) root 1599 918 5 (0.0063 0.033 0.43 0.4 0.12 0.011)  
+     2) alcohol&lt; 10.25 842 323 5 (0.0083 0.034 0.62 0.31 0.03 0.0024)  
+       4) sulphates&lt; 0.575 353  91 5 (0.011 0.054 0.74 0.19 0.0057 0)  
+         8) total.sulfur.dioxide&gt;=98.5 55   3 5 (0 0 0.95 0.055 0 0) *
+         9) total.sulfur.dioxide&lt; 98.5 298  88 5 (0.013 0.064 0.7 0.21 0.0067 0)  
+          18) alcohol&lt; 9.75 206  49 5 (0.0097 0.068 0.76 0.16 0.0049 0)  
+            36) alcohol&lt; 9.075 12   7 6 (0.083 0.25 0.25 0.42 0 0) *
+            37) alcohol&gt;=9.075 194  40 5 (0.0052 0.057 0.79 0.14 0.0052 0)  
+              74) residual.sugar&lt; 4.4 186  35 5 (0.0054 0.054 0.81 0.12 0.0054 0) *
+              75) residual.sugar&gt;=4.4 8   4 6 (0 0.12 0.38 0.5 0 0) *
+          19) alcohol&gt;=9.75 92  39 5 (0.022 0.054 0.58 0.34 0.011 0)  
+            38) citric.acid&lt; 0.185 46  12 5 (0.043 0.022 0.74 0.17 0.022 0)  
+              76) density&lt; 0.99588 21   3 5 (0.048 0.048 0.86 0 0.048 0) *
+              77) density&gt;=0.99588 25   9 5 (0.04 0 0.64 0.32 0 0)  
+               154) residual.sugar&gt;=2.15 15   2 5 (0.067 0 0.87 0.067 0 0) *
+               155) residual.sugar&lt; 2.15 10   3 6 (0 0 0.3 0.7 0 0) *
+            39) citric.acid&gt;=0.185 46  23 6 (0 0.087 0.41 0.5 0 0)  
+              78) citric.acid&gt;=0.245 27  10 5 (0 0.074 0.63 0.3 0 0) *
+              79) citric.acid&lt; 0.245 19   4 6 (0 0.11 0.11 0.79 0 0) *
+       5) sulphates&gt;=0.575 489 232 5 (0.0061 0.02 0.53 0.4 0.047 0.0041)  
+        10) total.sulfur.dioxide&gt;=81.5 92  17 5 (0 0.022 0.82 0.16 0 0) *
+        11) total.sulfur.dioxide&lt; 81.5 397 215 5 (0.0076 0.02 0.46 0.45 0.058 0.005)  
+          22) volatile.acidity&gt;=0.5475 181  74 5 (0.011 0.033 0.59 0.34 0.028 0)  
+            44) residual.sugar&lt; 1.85 55  14 5 (0.018 0.036 0.75 0.2 0 0)  
+              88) alcohol&lt; 9.85 43   6 5 (0 0.023 0.86 0.12 0 0) *
+              89) alcohol&gt;=9.85 12   6 6 (0.083 0.083 0.33 0.5 0 0) *
+            45) residual.sugar&gt;=1.85 126  60 5 (0.0079 0.032 0.52 0.4 0.04 0)  
+              90) alcohol&gt;=9.55 75  29 5 (0 0.027 0.61 0.29 0.067 0)  
+               180) citric.acid&lt; 0.305 68  23 5 (0 0.029 0.66 0.26 0.044 0)  
+                 360) total.sulfur.dioxide&gt;=52.5 19   2 5 (0 0.053 0.89 0.053 0 0) *
+                 361) total.sulfur.dioxide&lt; 52.5 49  21 5 (0 0.02 0.57 0.35 0.061 0)  
+                   722) fixed.acidity&lt; 6.95 11   2 5 (0 0.091 0.82 0.091 0 0) *
+                   723) fixed.acidity&gt;=6.95 38  19 5 (0 0 0.5 0.42 0.079 0)  
+                    1446) density&gt;=0.998475 8   1 5 (0 0 0.88 0.12 0 0) *
+                    1447) density&lt; 0.998475 30  15 6 (0 0 0.4 0.5 0.1 0)  
+                      2894) citric.acid&lt; 0.055 13   5 5 (0 0 0.62 0.38 0 0) *
+                      2895) citric.acid&gt;=0.055 17   7 6 (0 0 0.24 0.59 0.18 0) *
+               181) citric.acid&gt;=0.305 7   3 6 (0 0 0.14 0.57 0.29 0) *
+              91) alcohol&lt; 9.55 51  23 6 (0.02 0.039 0.39 0.55 0 0)  
+               182) sulphates&lt; 0.705 42  22 6 (0.024 0.048 0.45 0.48 0 0)  
+                 364) chlorides&lt; 0.089 24   9 5 (0 0.042 0.63 0.33 0 0)  
+                   728) sulphates&lt; 0.66 16   3 5 (0 0.062 0.81 0.12 0 0) *
+                   729) sulphates&gt;=0.66 8   2 6 (0 0 0.25 0.75 0 0) *
+                 365) chlorides&gt;=0.089 18   6 6 (0.056 0.056 0.22 0.67 0 0) *
+               183) sulphates&gt;=0.705 9   1 6 (0 0 0.11 0.89 0 0) *
+          23) volatile.acidity&lt; 0.5475 216  98 6 (0.0046 0.0093 0.35 0.55 0.083 0.0093)  
+            46) total.sulfur.dioxide&gt;=28.5 128  70 6 (0.0078 0.016 0.43 0.45 0.086 0.0078)  
+              92) residual.sugar&lt; 2.55 100  51 5 (0.01 0.01 0.49 0.38 0.1 0.01)  
+               184) volatile.acidity&gt;=0.385 73  30 5 (0.014 0.014 0.59 0.3 0.082 0)  
+                 368) citric.acid&gt;=0.305 31   9 5 (0.032 0.032 0.71 0.065 0.16 0) *
+                 369) citric.acid&lt; 0.305 42  21 5 (0 0 0.5 0.48 0.024 0)  
+                   738) density&lt; 0.99746 31  12 5 (0 0 0.61 0.35 0.032 0)  
+                    1476) volatile.acidity&gt;=0.425 23   6 5 (0 0 0.74 0.22 0.043 0)  
+                      2952) sulphates&gt;=0.63 15   1 5 (0 0 0.93 0.067 0 0) *
+                      2953) sulphates&lt; 0.63 8   4 6 (0 0 0.38 0.5 0.12 0) *
+                    1477) volatile.acidity&lt; 0.425 8   2 6 (0 0 0.25 0.75 0 0) *
+                   739) density&gt;=0.99746 11   2 6 (0 0 0.18 0.82 0 0) *
+               185) volatile.acidity&lt; 0.385 27  11 6 (0 0 0.22 0.59 0.15 0.037) *
+              93) residual.sugar&gt;=2.55 28   8 6 (0 0.036 0.21 0.71 0.036 0)  
+               186) sulphates&lt; 0.66 10   5 5 (0 0 0.5 0.4 0.1 0) *
+               187) sulphates&gt;=0.66 18   2 6 (0 0.056 0.056 0.89 0 0) *
+            47) total.sulfur.dioxide&lt; 28.5 88  28 6 (0 0 0.23 0.68 0.08 0.011)  
+              94) free.sulfur.dioxide&lt; 5.5 26  14 5 (0 0 0.46 0.46 0.038 0.038)  
+               188) alcohol&lt; 9.75 16   5 5 (0 0 0.69 0.31 0 0) *
+               189) alcohol&gt;=9.75 10   3 6 (0 0 0.1 0.7 0.1 0.1) *
+              95) free.sulfur.dioxide&gt;=5.5 62  14 6 (0 0 0.13 0.77 0.097 0) *
+     3) alcohol&gt;=10.25 757 379 6 (0.004 0.032 0.21 0.5 0.23 0.021)  
+       6) alcohol&lt; 11.55 507 248 6 (0.0059 0.041 0.28 0.51 0.15 0.0079)  
+        12) volatile.acidity&gt;=0.375 375 171 6 (0.008 0.053 0.31 0.54 0.077 0.0027)  
+          24) sulphates&lt; 0.585 123  67 5 (0.024 0.11 0.46 0.37 0.041 0)  
+            48) free.sulfur.dioxide&lt; 16.5 91  44 5 (0.033 0.11 0.52 0.29 0.055 0)  
+              96) density&gt;=0.995475 64  24 5 (0.031 0.078 0.62 0.23 0.031 0)  
+               192) sulphates&lt; 0.545 31   6 5 (0.065 0 0.81 0.13 0 0) *
+               193) sulphates&gt;=0.545 33  18 5 (0 0.15 0.45 0.33 0.061 0)  
+                 386) density&gt;=0.996085 25  11 5 (0 0.2 0.56 0.24 0 0)  
+                   772) alcohol&gt;=10.75 12   3 5 (0 0.25 0.75 0 0 0) *
+                   773) alcohol&lt; 10.75 13   7 6 (0 0.15 0.38 0.46 0 0) *
+                 387) density&lt; 0.996085 8   3 6 (0 0 0.12 0.62 0.25 0) *
+              97) density&lt; 0.995475 27  16 6 (0.037 0.19 0.26 0.41 0.11 0)  
+               194) total.sulfur.dioxide&lt; 30 15  10 5 (0.067 0.27 0.33 0.13 0.2 0) *
+               195) total.sulfur.dioxide&gt;=30 12   3 6 (0 0.083 0.17 0.75 0 0) *
+            49) free.sulfur.dioxide&gt;=16.5 32  13 6 (0 0.12 0.28 0.59 0 0)  
+              98) pH&gt;=3.495 7   3 4 (0 0.57 0.29 0.14 0 0) *
+              99) pH&lt; 3.495 25   7 6 (0 0 0.28 0.72 0 0) *
+          25) sulphates&gt;=0.585 252  93 6 (0 0.024 0.25 0.63 0.095 0.004)  
+            50) residual.sugar&gt;=4.1 25  10 5 (0 0 0.6 0.16 0.24 0)  
+             100) citric.acid&gt;=0.34 17   3 5 (0 0 0.82 0.12 0.059 0) *
+             101) citric.acid&lt; 0.34 8   3 7 (0 0 0.12 0.25 0.62 0) *
+            51) residual.sugar&lt; 4.1 227  72 6 (0 0.026 0.21 0.68 0.079 0.0044)  
+             102) pH&gt;=3.615 7   2 5 (0 0.14 0.71 0.14 0 0) *
+             103) pH&lt; 3.615 220  66 6 (0 0.023 0.19 0.7 0.082 0.0045)  
+               206) citric.acid&gt;=0.085 161  59 6 (0 0.025 0.22 0.63 0.11 0.0062)  
+                 412) residual.sugar&gt;=3.05 12   7 7 (0 0.25 0.083 0.25 0.42 0) *
+                 413) residual.sugar&lt; 3.05 149  50 6 (0 0.0067 0.23 0.66 0.087 0.0067)  
+                   826) pH&lt; 3.435 125  35 6 (0 0.008 0.21 0.72 0.056 0.008)  
+                    1652) alcohol&lt; 11.25 104  34 6 (0 0.0096 0.25 0.67 0.067 0)  
+                      3304) chlorides&gt;=0.0965 16   7 5 (0 0 0.56 0.44 0 0) *
+                      3305) chlorides&lt; 0.0965 88  25 6 (0 0.011 0.19 0.72 0.08 0) *
+                    1653) alcohol&gt;=11.25 21   1 6 (0 0 0 0.95 0 0.048) *
+                   827) pH&gt;=3.435 24  15 5 (0 0 0.38 0.38 0.25 0)  
+                    1654) residual.sugar&lt; 1.9 9   2 5 (0 0 0.78 0.11 0.11 0) *
+                    1655) residual.sugar&gt;=1.9 15   7 6 (0 0 0.13 0.53 0.33 0) *
+               207) citric.acid&lt; 0.085 59   7 6 (0 0.017 0.1 0.88 0 0) *
+        13) volatile.acidity&lt; 0.375 132  77 6 (0 0.0076 0.2 0.42 0.36 0.023)  
+          26) pH&gt;=3.265 75  38 6 (0 0.013 0.27 0.49 0.23 0)  
+            52) total.sulfur.dioxide&gt;=56.5 21  11 5 (0 0.048 0.48 0.29 0.19 0)  
+             104) fixed.acidity&lt; 8.2 14   5 5 (0 0.071 0.64 0.29 0 0) *
+             105) fixed.acidity&gt;=8.2 7   3 7 (0 0 0.14 0.29 0.57 0) *
+            53) total.sulfur.dioxide&lt; 56.5 54  23 6 (0 0 0.19 0.57 0.24 0)  
+             106) total.sulfur.dioxide&lt; 24 23  13 5 (0 0 0.43 0.35 0.22 0)  
+               212) alcohol&lt; 11.15 16   6 5 (0 0 0.62 0.19 0.19 0) *
+               213) alcohol&gt;=11.15 7   2 6 (0 0 0 0.71 0.29 0) *
+             107) total.sulfur.dioxide&gt;=24 31   8 6 (0 0 0 0.74 0.26 0) *
+          27) pH&lt; 3.265 57  27 7 (0 0 0.11 0.32 0.53 0.053)  
+            54) alcohol&lt; 10.55 11   5 6 (0 0 0.27 0.55 0.18 0) *
+            55) alcohol&gt;=10.55 46  18 7 (0 0 0.065 0.26 0.61 0.065) *
+       7) alcohol&gt;=11.55 250 131 6 (0 0.012 0.072 0.48 0.39 0.048)  
+        14) sulphates&lt; 0.685 136  53 6 (0 0.022 0.11 0.61 0.25 0.0074)  
+          28) total.sulfur.dioxide&gt;=15.5 101  30 6 (0 0.02 0.12 0.7 0.15 0.0099)  
+            56) free.sulfur.dioxide&lt; 31.5 91  23 6 (0 0.022 0.13 0.75 0.099 0)  
+             112) volatile.acidity&gt;=0.495 41  14 6 (0 0.049 0.27 0.66 0.024 0)  
+               224) chlorides&lt; 0.0585 13   6 5 (0 0.15 0.54 0.31 0 0) *
+               225) chlorides&gt;=0.0585 28   5 6 (0 0 0.14 0.82 0.036 0) *
+             113) volatile.acidity&lt; 0.495 50   9 6 (0 0 0.02 0.82 0.16 0) *
+            57) free.sulfur.dioxide&gt;=31.5 10   4 7 (0 0 0 0.3 0.6 0.1) *
+          29) total.sulfur.dioxide&lt; 15.5 35  16 7 (0 0.029 0.086 0.34 0.54 0)  
+            58) sulphates&lt; 0.575 17   7 6 (0 0.059 0.12 0.59 0.24 0) *
+            59) sulphates&gt;=0.575 18   3 7 (0 0 0.056 0.11 0.83 0) *
+        15) sulphates&gt;=0.685 114  50 7 (0 0 0.026 0.32 0.56 0.096)  
+          30) free.sulfur.dioxide&gt;=18.5 39  18 6 (0 0 0.051 0.54 0.33 0.077)  
+            60) pH&gt;=3.36 17   3 6 (0 0 0 0.82 0 0.18) *
+            61) pH&lt; 3.36 22   9 7 (0 0 0.091 0.32 0.59 0)  
+             122) residual.sugar&lt; 2.15 7   2 6 (0 0 0 0.71 0.29 0) *
+             123) residual.sugar&gt;=2.15 15   4 7 (0 0 0.13 0.13 0.73 0) *
+          31) free.sulfur.dioxide&lt; 18.5 75  24 7 (0 0 0.013 0.2 0.68 0.11)  
+            62) free.sulfur.dioxide&lt; 9.5 35  18 7 (0 0 0 0.34 0.49 0.17)  
+             124) volatile.acidity&gt;=0.35 20   9 6 (0 0 0 0.55 0.25 0.2)  
+               248) sulphates&gt;=0.75 13   5 6 (0 0 0 0.62 0.38 0) *
+               249) sulphates&lt; 0.75 7   3 8 (0 0 0 0.43 0 0.57) *
+             125) volatile.acidity&lt; 0.35 15   3 7 (0 0 0 0.067 0.8 0.13) *
+            63) free.sulfur.dioxide&gt;=9.5 40   6 7 (0 0 0.025 0.075 0.85 0.05) *</code></pre>
+</div>
+</div>
+<p><strong>Answer to Question 6:</strong></p>
+<p>The best tree (cp = 0.005) is simpler than the initial tree. It has fewer splits and terminal nodes, which reduces overfitting. The initial tree uses more variables and creates deeper branches, trying to capture every detail in the training data. The best tree focuses on the most important splits (alcohol, sulphates, volatile acidity) and stops earlier, making it more generalizable. Both trees start with alcohol as the first split, showing this is consistently the most important predictor, but the best tree prunes away less useful branches that don’t improve prediction on new data.</p>
+</section>
+</section>
+</section>
+
+</main>
+<!-- /main column -->
+<script id="quarto-html-after-body" type="application/javascript">
+window.document.addEventListener("DOMContentLoaded", function (event) {
+  const toggleBodyColorMode = (bsSheetEl) => {
+    const mode = bsSheetEl.getAttribute("data-mode");
+    const bodyEl = window.document.querySelector("body");
+    if (mode === "dark") {
+      bodyEl.classList.add("quarto-dark");
+      bodyEl.classList.remove("quarto-light");
+    } else {
+      bodyEl.classList.add("quarto-light");
+      bodyEl.classList.remove("quarto-dark");
+    }
+  }
+  const toggleBodyColorPrimary = () => {
+    const bsSheetEl = window.document.querySelector("link#quarto-bootstrap");
+    if (bsSheetEl) {
+      toggleBodyColorMode(bsSheetEl);
+    }
+  }
+  toggleBodyColorPrimary();  
+  const icon = "";
+  const anchorJS = new window.AnchorJS();
+  anchorJS.options = {
+    placement: 'right',
+    icon: icon
+  };
+  anchorJS.add('.anchored');
+  const isCodeAnnotation = (el) => {
+    for (const clz of el.classList) {
+      if (clz.startsWith('code-annotation-')) {                     
+        return true;
+      }
+    }
+    return false;
+  }
+  const onCopySuccess = function(e) {
+    // button target
+    const button = e.trigger;
+    // don't keep focus
+    button.blur();
+    // flash "checked"
+    button.classList.add('code-copy-button-checked');
+    var currentTitle = button.getAttribute("title");
+    button.setAttribute("title", "Copied!");
+    let tooltip;
+    if (window.bootstrap) {
+      button.setAttribute("data-bs-toggle", "tooltip");
+      button.setAttribute("data-bs-placement", "left");
+      button.setAttribute("data-bs-title", "Copied!");
+      tooltip = new bootstrap.Tooltip(button, 
+        { trigger: "manual", 
+          customClass: "code-copy-button-tooltip",
+          offset: [0, -8]});
+      tooltip.show();    
+    }
+    setTimeout(function() {
+      if (tooltip) {
+        tooltip.hide();
+        button.removeAttribute("data-bs-title");
+        button.removeAttribute("data-bs-toggle");
+        button.removeAttribute("data-bs-placement");
+      }
+      button.setAttribute("title", currentTitle);
+      button.classList.remove('code-copy-button-checked');
+    }, 1000);
+    // clear code selection
+    e.clearSelection();
+  }
+  const getTextToCopy = function(trigger) {
+      const codeEl = trigger.previousElementSibling.cloneNode(true);
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+  }
+  const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+    text: getTextToCopy
+  });
+  clipboard.on('success', onCopySuccess);
+  if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+    const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+      text: getTextToCopy,
+      container: window.document.getElementById('quarto-embedded-source-code-modal')
+    });
+    clipboardModal.on('success', onCopySuccess);
+  }
+    var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+    var mailtoRegex = new RegExp(/^mailto:/);
+      var filterRegex = new RegExp('/' + window.location.host + '/');
+    var isInternal = (href) => {
+        return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+    }
+    // Inspect non-navigation links and adorn them if external
+ 	var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+    for (var i=0; i<links.length; i++) {
+      const link = links[i];
+      if (!isInternal(link.href)) {
+        // undo the damage that might have been done by quarto-nav.js in the case of
+        // links that we want to consider external
+        if (link.dataset.originalHref !== undefined) {
+          link.href = link.dataset.originalHref;
+        }
+      }
+    }
+  function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+    const config = {
+      allowHTML: true,
+      maxWidth: 500,
+      delay: 100,
+      arrow: false,
+      appendTo: function(el) {
+          return el.parentElement;
+      },
+      interactive: true,
+      interactiveBorder: 10,
+      theme: 'quarto',
+      placement: 'bottom-start',
+    };
+    if (contentFn) {
+      config.content = contentFn;
+    }
+    if (onTriggerFn) {
+      config.onTrigger = onTriggerFn;
+    }
+    if (onUntriggerFn) {
+      config.onUntrigger = onUntriggerFn;
+    }
+    window.tippy(el, config); 
+  }
+  const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+  for (var i=0; i<noterefs.length; i++) {
+    const ref = noterefs[i];
+    tippyHover(ref, function() {
+      // use id or data attribute instead here
+      let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+      try { href = new URL(href).hash; } catch {}
+      const id = href.replace(/^#\/?/, "");
+      const note = window.document.getElementById(id);
+      if (note) {
+        return note.innerHTML;
+      } else {
+        return "";
+      }
+    });
+  }
+  const xrefs = window.document.querySelectorAll('a.quarto-xref');
+  const processXRef = (id, note) => {
+    // Strip column container classes
+    const stripColumnClz = (el) => {
+      el.classList.remove("page-full", "page-columns");
+      if (el.children) {
+        for (const child of el.children) {
+          stripColumnClz(child);
+        }
+      }
+    }
+    stripColumnClz(note)
+    if (id === null || id.startsWith('sec-')) {
+      // Special case sections, only their first couple elements
+      const container = document.createElement("div");
+      if (note.children && note.children.length > 2) {
+        container.appendChild(note.children[0].cloneNode(true));
+        for (let i = 1; i < note.children.length; i++) {
+          const child = note.children[i];
+          if (child.tagName === "P" && child.innerText === "") {
+            continue;
+          } else {
+            container.appendChild(child.cloneNode(true));
+            break;
+          }
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(container);
+        }
+        return container.innerHTML
+      } else {
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        return note.innerHTML;
+      }
+    } else {
+      // Remove any anchor links if they are present
+      const anchorLink = note.querySelector('a.anchorjs-link');
+      if (anchorLink) {
+        anchorLink.remove();
+      }
+      if (window.Quarto?.typesetMath) {
+        window.Quarto.typesetMath(note);
+      }
+      if (note.classList.contains("callout")) {
+        return note.outerHTML;
+      } else {
+        return note.innerHTML;
+      }
+    }
+  }
+  for (var i=0; i<xrefs.length; i++) {
+    const xref = xrefs[i];
+    tippyHover(xref, undefined, function(instance) {
+      instance.disable();
+      let url = xref.getAttribute('href');
+      let hash = undefined; 
+      if (url.startsWith('#')) {
+        hash = url;
+      } else {
+        try { hash = new URL(url).hash; } catch {}
+      }
+      if (hash) {
+        const id = hash.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note !== null) {
+          try {
+            const html = processXRef(id, note.cloneNode(true));
+            instance.setContent(html);
+          } finally {
+            instance.enable();
+            instance.show();
+          }
+        } else {
+          // See if we can fetch this
+          fetch(url.split('#')[0])
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.getElementById(id);
+            if (note !== null) {
+              const html = processXRef(id, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      } else {
+        // See if we can fetch a full url (with no hash to target)
+        // This is a special case and we should probably do some content thinning / targeting
+        fetch(url)
+        .then(res => res.text())
+        .then(html => {
+          const parser = new DOMParser();
+          const htmlDoc = parser.parseFromString(html, "text/html");
+          const note = htmlDoc.querySelector('main.content');
+          if (note !== null) {
+            // This should only happen for chapter cross references
+            // (since there is no id in the URL)
+            // remove the first header
+            if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+              note.children[0].remove();
+            }
+            const html = processXRef(null, note);
+            instance.setContent(html);
+          } 
+        }).finally(() => {
+          instance.enable();
+          instance.show();
+        });
+      }
+    }, function(instance) {
+    });
+  }
+      let selectedAnnoteEl;
+      const selectorForAnnotation = ( cell, annotation) => {
+        let cellAttr = 'data-code-cell="' + cell + '"';
+        let lineAttr = 'data-code-annotation="' +  annotation + '"';
+        const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+        return selector;
+      }
+      const selectCodeLines = (annoteEl) => {
+        const doc = window.document;
+        const targetCell = annoteEl.getAttribute("data-target-cell");
+        const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+        const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+        const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+        const lineIds = lines.map((line) => {
+          return targetCell + "-" + line;
+        })
+        let top = null;
+        let height = null;
+        let parent = null;
+        if (lineIds.length > 0) {
+            //compute the position of the single el (top and bottom and make a div)
+            const el = window.document.getElementById(lineIds[0]);
+            top = el.offsetTop;
+            height = el.offsetHeight;
+            parent = el.parentElement.parentElement;
+          if (lineIds.length > 1) {
+            const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+            const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+            height = bottom - top;
+          }
+          if (top !== null && height !== null && parent !== null) {
+            // cook up a div (if necessary) and position it 
+            let div = window.document.getElementById("code-annotation-line-highlight");
+            if (div === null) {
+              div = window.document.createElement("div");
+              div.setAttribute("id", "code-annotation-line-highlight");
+              div.style.position = 'absolute';
+              parent.appendChild(div);
+            }
+            div.style.top = top - 2 + "px";
+            div.style.height = height + 4 + "px";
+            div.style.left = 0;
+            let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+            if (gutterDiv === null) {
+              gutterDiv = window.document.createElement("div");
+              gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+              gutterDiv.style.position = 'absolute';
+              const codeCell = window.document.getElementById(targetCell);
+              const gutter = codeCell.querySelector('.code-annotation-gutter');
+              gutter.appendChild(gutterDiv);
+            }
+            gutterDiv.style.top = top - 2 + "px";
+            gutterDiv.style.height = height + 4 + "px";
+          }
+          selectedAnnoteEl = annoteEl;
+        }
+      };
+      const unselectCodeLines = () => {
+        const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+        elementsIds.forEach((elId) => {
+          const div = window.document.getElementById(elId);
+          if (div) {
+            div.remove();
+          }
+        });
+        selectedAnnoteEl = undefined;
+      };
+        // Handle positioning of the toggle
+    window.addEventListener(
+      "resize",
+      throttle(() => {
+        elRect = undefined;
+        if (selectedAnnoteEl) {
+          selectCodeLines(selectedAnnoteEl);
+        }
+      }, 10)
+    );
+    function throttle(fn, ms) {
+    let throttle = false;
+    let timer;
+      return (...args) => {
+        if(!throttle) { // first call gets through
+            fn.apply(this, args);
+            throttle = true;
+        } else { // all the others get throttled
+            if(timer) clearTimeout(timer); // cancel #2
+            timer = setTimeout(() => {
+              fn.apply(this, args);
+              timer = throttle = false;
+            }, ms);
+        }
+      };
+    }
+      // Attach click handler to the DT
+      const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+      for (const annoteDlNode of annoteDls) {
+        annoteDlNode.addEventListener('click', (event) => {
+          const clickedEl = event.target;
+          if (clickedEl !== selectedAnnoteEl) {
+            unselectCodeLines();
+            const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+            if (activeEl) {
+              activeEl.classList.remove('code-annotation-active');
+            }
+            selectCodeLines(clickedEl);
+            clickedEl.classList.add('code-annotation-active');
+          } else {
+            // Unselect the line
+            unselectCodeLines();
+            clickedEl.classList.remove('code-annotation-active');
+          }
+        });
+      }
+  const findCites = (el) => {
+    const parentEl = el.parentElement;
+    if (parentEl) {
+      const cites = parentEl.dataset.cites;
+      if (cites) {
+        return {
+          el,
+          cites: cites.split(' ')
+        };
+      } else {
+        return findCites(el.parentElement)
+      }
+    } else {
+      return undefined;
+    }
+  };
+  var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+  for (var i=0; i<bibliorefs.length; i++) {
+    const ref = bibliorefs[i];
+    const citeInfo = findCites(ref);
+    if (citeInfo) {
+      tippyHover(citeInfo.el, function() {
+        var popup = window.document.createElement('div');
+        citeInfo.cites.forEach(function(cite) {
+          var citeDiv = window.document.createElement('div');
+          citeDiv.classList.add('hanging-indent');
+          citeDiv.classList.add('csl-entry');
+          var biblioDiv = window.document.getElementById('ref-' + cite);
+          if (biblioDiv) {
+            citeDiv.innerHTML = biblioDiv.innerHTML;
+          }
+          popup.appendChild(citeDiv);
+        });
+        return popup.innerHTML;
+      });
+    }
+  }
+});
+</script>
+</div> <!-- /content -->
+
+
+
+
+</body></html>

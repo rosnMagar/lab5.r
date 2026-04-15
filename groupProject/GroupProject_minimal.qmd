@@ -1,0 +1,272 @@
+---
+title: "Group Project"
+author: "Yuchen Hsiao, Roshan Thapa Magar, Shiori Umekawa"
+date: today
+format: pdf
+output-file: "Bank Marketing Dataset Analysis"
+output-ext: "pdf"
+editor: source
+---
+
+```{r}
+library(tidyverse)
+```
+
+```{r}
+bank<-read.csv("bank-additional/bank-additional/bank-additional-full.csv",sep = ";")
+```
+
+```{r}
+#shows rows and colums
+dim(bank)
+#shows first few rows
+head(bank)
+#shows structure(type of variables)
+str(bank)
+```
+
+```{r}
+#summary all variables
+summary(bank)
+```
+
+```{r}
+#checking missing value
+colSums(is.na(bank))
+```
+
+```{r}
+#view unique values per column
+sapply(bank,function(x)length(unique(x)))
+```
+
+```{r}
+#y= if clients are keep subscribing next term deposit 
+table(bank$y)
+prop.table(table(bank$y))
+```
+
+# Data Cleaning
+
+This section documents the data cleaning process. Most cleaning steps can be performed in Excel (see `Excel_Data_Cleaning_Guide.md`). The R code here focuses only on one-hot encoding, which is complex to do efficiently in Excel.
+
+## Minimal R Cleaning (One-Hot Encoding Only)
+
+The following R code performs only the essential one-hot encoding that cannot be efficiently done in Excel. All other cleaning steps should be performed in Excel using the guide provided.
+
+```{r}
+# Load required packages
+library(tidyverse)
+
+# Load data
+bank <- read.csv("bank-additional/bank-additional/bank-additional-full.csv", sep = ";")
+cat("Original dataset:", nrow(bank), "rows,", ncol(bank), "columns\n")
+
+# Step 1: Handle "unknown" values (convert to NA for consistency)
+bank_clean <- bank
+bank_clean[bank_clean == "unknown"] <- NA
+cat("Converted 'unknown' to NA values\n")
+```
+
+## One-Hot Encoding
+
+This is the main step that cannot be efficiently done in Excel. We convert categorical variables into binary dummy variables.
+
+```{r}
+# One-hot encode categorical variables
+categorical_vars <- c("job", "marital", "education", "default", "housing", 
+                      "loan", "contact", "month", "day_of_week", "poutcome")
+
+bank_encoded <- bank_clean
+for (var in categorical_vars) {
+  if (var %in% names(bank_encoded)) {
+    # Create dummy variables using model.matrix
+    temp_var <- factor(bank_encoded[[var]], exclude = NULL)
+    dummy_matrix <- model.matrix(~ temp_var)[, -1, drop = FALSE]
+    colnames(dummy_matrix) <- sub("^temp_var", "", colnames(dummy_matrix))
+    colnames(dummy_matrix) <- paste0(var, "_", colnames(dummy_matrix))
+    bank_encoded <- cbind(bank_encoded, dummy_matrix)
+  }
+}
+
+# Create binary target variable
+bank_encoded$y_binary <- ifelse(bank_encoded$y == "yes", 1, 0)
+
+# Remove original categorical columns (keep y for reference)
+bank_encoded <- bank_encoded[, !names(bank_encoded) %in% categorical_vars]
+
+cat("Encoding complete. Final dataset:", nrow(bank_encoded), "rows,", ncol(bank_encoded), "columns\n")
+```
+
+## Save Cleaned Dataset
+
+The cleaned dataset is saved for further analysis. Normalization and outlier handling can be performed in Excel if needed.
+
+```{r}
+# Save the cleaned dataset
+write.csv(bank_encoded, "bank_cleaned.csv", row.names = FALSE)
+cat("Cleaned dataset saved as 'bank_cleaned.csv'\n")
+cat("Final dataset dimensions:", dim(bank_encoded), "\n")
+
+# Display summary
+cat("\nDataset Summary:\n")
+cat("- Rows:", nrow(bank_encoded), "\n")
+cat("- Columns:", ncol(bank_encoded), "\n")
+cat("- Missing values:", sum(is.na(bank_encoded)), "\n")
+cat("- Target distribution:\n")
+print(table(bank_encoded$y, useNA = "ifany"))
+```
+
+# Exploratory Data Analysis (Roshan)
+
+This section explores the cleaned dataset through various visualizations to understand distributions, relationships, and trends in the data.
+
+## Histogram Visualizations
+
+Histograms show the distribution of key numerical variables, helping us understand the shape and spread of the data.
+
+```{r}
+# Age distribution
+ggplot(bank_encoded, aes(x = age)) +
+  geom_histogram(bins = 30, fill = "steelblue", color = "black", alpha = 0.7) +
+  theme_minimal() +
+  labs(title = "Distribution of Client Ages",
+       x = "Age", y = "Frequency")
+```
+
+```{r}
+# Duration distribution
+ggplot(bank_encoded, aes(x = duration)) +
+  geom_histogram(bins = 50, fill = "coral", color = "black", alpha = 0.7) +
+  theme_minimal() +
+  labs(title = "Distribution of Call Duration (seconds)",
+       x = "Duration (seconds)", y = "Frequency")
+```
+
+```{r}
+# Campaign distribution
+ggplot(bank_encoded, aes(x = campaign)) +
+  geom_histogram(bins = 20, fill = "lightgreen", color = "black", alpha = 0.7) +
+  theme_minimal() +
+  labs(title = "Distribution of Number of Contacts During Campaign",
+       x = "Number of Contacts", y = "Frequency")
+```
+
+## Scatter Plot with Regression Line
+
+Scatter plots with regression lines help visualize relationships between pairs of variables and identify potential correlations. We examine several key relationships.
+
+Age vs Duration: Exploring whether client age relates to call duration.
+
+```{r}
+# Scatter plot: Age vs Duration with regression line
+ggplot(bank_encoded, aes(x = age, y = duration)) +
+  geom_point(alpha = 0.3, color = "steelblue") +
+  geom_smooth(method = "lm", color = "red", se = TRUE) +
+  theme_minimal() +
+  labs(title = "Relationship Between Age and Call Duration",
+       subtitle = "With Linear Regression Line",
+       x = "Age", y = "Duration (seconds)")
+
+# Calculate correlation
+cor_age_duration <- cor(bank_encoded$age, bank_encoded$duration, use = "complete.obs")
+cat("Correlation between age and duration:", round(cor_age_duration, 3), "\n")
+```
+
+Duration vs Campaign: Investigating the relationship between call duration and number of campaign contacts.
+
+```{r}
+# Scatter plot: Duration vs Campaign with regression line
+ggplot(bank_encoded, aes(x = duration, y = campaign)) +
+  geom_point(alpha = 0.3, color = "coral") +
+  geom_smooth(method = "lm", color = "darkgreen", se = TRUE) +
+  theme_minimal() +
+  labs(title = "Relationship Between Call Duration and Number of Campaign Contacts",
+       subtitle = "With Linear Regression Line",
+       x = "Duration (seconds)", y = "Number of Campaign Contacts")
+
+# Calculate correlation
+cor_duration_campaign <- cor(bank_encoded$duration, bank_encoded$campaign, use = "complete.obs")
+cat("Correlation between duration and campaign:", round(cor_duration_campaign, 3), "\n")
+```
+
+Age vs Previous: Examining if age relates to the number of previous campaign contacts.
+
+```{r}
+# Scatter plot: Age vs Previous contacts with regression line
+ggplot(bank_encoded, aes(x = age, y = previous)) +
+  geom_point(alpha = 0.3, color = "purple") +
+  geom_smooth(method = "lm", color = "orange", se = TRUE) +
+  theme_minimal() +
+  labs(title = "Relationship Between Age and Previous Contacts",
+       subtitle = "With Linear Regression Line",
+       x = "Age", y = "Number of Previous Contacts")
+
+# Calculate correlation
+cor_age_previous <- cor(bank_encoded$age, bank_encoded$previous, use = "complete.obs")
+cat("Correlation between age and previous contacts:", round(cor_age_previous, 3), "\n")
+```
+
+## Box Plot Visualizations
+
+Box plots compare the distribution of numerical variables across different subscription outcomes (yes/no), helping identify differences between subscribers and non-subscribers.
+
+Comparing age distributions between subscribers and non-subscribers.
+
+```{r}
+# Box plot: Age by subscription status
+ggplot(bank_encoded, aes(x = y, y = age, fill = y)) +
+  geom_boxplot(alpha = 0.7) +
+  theme_minimal() +
+  labs(title = "Age Distribution by Subscription Status",
+       x = "Subscription (y)", y = "Age") +
+  scale_fill_manual(values = c("no" = "lightcoral", "yes" = "lightgreen"))
+```
+
+Comparing call duration distributions between subscribers and non-subscribers.
+
+```{r}
+# Box plot: Duration by subscription status
+ggplot(bank_encoded, aes(x = y, y = duration, fill = y)) +
+  geom_boxplot(alpha = 0.7) +
+  theme_minimal() +
+  labs(title = "Call Duration Distribution by Subscription Status",
+       x = "Subscription (y)", y = "Duration (seconds)") +
+  scale_fill_manual(values = c("no" = "lightcoral", "yes" = "lightgreen"))
+```
+
+## Additional Trend Analysis
+
+Summary statistics by subscription status provide quantitative insights into differences between clients who subscribed and those who did not.
+
+```{r}
+# Summary statistics of key numerical features by subscription status
+library(dplyr)
+trend_summary <- bank_encoded %>%
+  group_by(y) %>%
+  summarise(
+    Mean_Age = mean(age, na.rm = TRUE),
+    Mean_Duration = mean(duration, na.rm = TRUE),
+    Mean_Campaign = mean(campaign, na.rm = TRUE),
+    Mean_Previous = mean(previous, na.rm = TRUE),
+    .groups = "drop"
+  )
+print(trend_summary)
+```
+
+```{r}
+#Distribution of age to see the rang of people who aspect this research 
+ggplot(bank, aes(x=age))+
+  geom_histogram(fill="steelblue",bins=30,color="pink")+
+  theme_minimal()+
+  labs(title="Age Distribution of Clients")
+```
+
+```{r}
+#subscription rate by job type
+ggplot(bank, aes(x=job, fill = y))+
+  geom_bar(position = "fill")+
+  coord_flip()+
+  labs(title="Term Desposit Subscription by Job Type", y= "Proportion")
+theme_minimal()
+```
