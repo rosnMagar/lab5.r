@@ -135,8 +135,7 @@ Contact frequency during the campaign is heavily skewed to the right, with over 
 
 Each scatter plot below colors points by subscription outcome (orange = no, blue = yes) and fits a separate regression line per group. This lets us see not just whether two variables are related, but whether that relationship differs between subscribers and non-subscribers — which is far more useful for understanding what drives subscription.
 
-**Plot 1 — Duration vs. Age (colored by subscription)**
-Duration is the single strongest predictor of subscription in this dataset. Age is the most basic client demographic. Plotting them together and coloring by outcome reveals whether subscribers cluster in a specific age-duration region, or whether duration separates the groups regardless of age.
+**Plot 1 — Duration vs. Age (colored by subscription)** Duration is the single strongest predictor of subscription in this dataset. Age is the most basic client demographic. Plotting them together and coloring by outcome reveals whether subscribers cluster in a specific age-duration region, or whether duration separates the groups regardless of age.
 
 ```{r}
 # Scatter plot: Age vs Duration, colored by subscription outcome
@@ -160,8 +159,7 @@ cat("Correlation (no):", round(cor_age_dur_no, 3),
 
 Both groups show essentially no relationship between age and duration (correlations near zero), but the blue "yes" points are visibly concentrated at higher duration values across all ages. This confirms that call duration separates subscribers from non-subscribers independent of how old the client is.
 
-**Plot 2 — Duration vs. Campaign Contacts (colored by subscription)**
-Duration measures engagement quality; campaign contacts measures outreach quantity. Comparing them reveals whether the bank's contact strategy (calling more often) substitutes for or complements the quality of individual conversations.
+**Plot 2 — Duration vs. Campaign Contacts (colored by subscription)** Duration measures engagement quality; campaign contacts measures outreach quantity. Comparing them reveals whether the bank's contact strategy (calling more often) substitutes for or complements the quality of individual conversations.
 
 ```{r}
 # Scatter plot: Duration vs Campaign contacts, colored by subscription outcome
@@ -185,8 +183,7 @@ cat("Correlation (no):", round(cor_dur_camp_no, 3),
 
 The blue "yes" cluster sits markedly higher on the duration axis and concentrates at lower campaign contact counts. The regression lines for both groups slope slightly downward, reinforcing that more calls do not produce longer conversations. Subscribers are won through a single quality interaction, not repeated contact.
 
-**Plot 3 — Previous Contacts vs. Campaign Contacts (colored by subscription)**
-Previous contacts reflects historical engagement with the client, while campaign contacts reflects current outreach effort. Examining how these two frequency measures interact — and whether that pattern differs for subscribers — tells us whether prior relationship-building changes how the current campaign plays out.
+**Plot 3 — Previous Contacts vs. Campaign Contacts (colored by subscription)** Previous contacts reflects historical engagement with the client, while campaign contacts reflects current outreach effort. Examining how these two frequency measures interact — and whether that pattern differs for subscribers — tells us whether prior relationship-building changes how the current campaign plays out.
 
 ```{r}
 # Scatter plot: Previous vs Campaign contacts, colored by subscription outcome
@@ -209,7 +206,7 @@ cat("Correlation (no):", round(cor_prev_camp_no, 3),
     " | Correlation (yes):", round(cor_prev_camp_yes, 3), "\n")
 ```
 
-Clients with prior contacts (previous > 0) who subscribed tend to have received fewer current campaign calls — the blue regression line slopes more steeply downward than the orange. This suggests that clients with an existing relationship require less current effort to convert, supporting the value of long-term client engagement over aggressive short-term outreach.
+Clients with prior contacts (previous \> 0) who subscribed tend to have received fewer current campaign calls — the blue regression line slopes more steeply downward than the orange. This suggests that clients with an existing relationship require less current effort to convert, supporting the value of long-term client engagement over aggressive short-term outreach.
 
 ## Box Plot Visualizations
 
@@ -267,7 +264,7 @@ ggplot(bank_clean, aes(x = y, y = campaign, fill = y)) +
   scale_fill_manual(values = c("no" = "#F28E2B", "yes" = "#4E79A7"))
 ```
 
-Subscribers were contacted fewer times on average (mean ~2.1) compared to non-subscribers (mean ~2.6). The violin for non-subscribers is wider at higher contact counts, suggesting that repeated outreach does not improve — and may slightly reduce — the likelihood of subscription. Quality of contact appears more important than frequency.
+Subscribers were contacted fewer times on average (mean \~2.1) compared to non-subscribers (mean \~2.6). The violin for non-subscribers is wider at higher contact counts, suggesting that repeated outreach does not improve — and may slightly reduce — the likelihood of subscription. Quality of contact appears more important than frequency.
 
 A comparison of previous campaign contact counts across subscription outcomes.
 
@@ -285,7 +282,7 @@ ggplot(bank_clean, aes(x = y, y = previous, fill = y)) +
   scale_fill_manual(values = c("no" = "#F28E2B", "yes" = "#4E79A7"))
 ```
 
-Subscribers had notably more prior campaign contacts (mean ~0.49) than non-subscribers (mean ~0.13). This suggests that clients who had been engaged in earlier campaigns are more likely to subscribe, indicating that prior relationship-building plays a role in conversion success.
+Subscribers had notably more prior campaign contacts (mean \~0.49) than non-subscribers (mean \~0.13). This suggests that clients who had been engaged in earlier campaigns are more likely to subscribe, indicating that prior relationship-building plays a role in conversion success.
 
 ## Additional Trend Analysis
 
@@ -331,3 +328,359 @@ ggplot(bank_original, aes(x=job, fill = y))+
 ```
 
 The bar chart uncovers considerable differences in subscription rates depending on occupation. Retirees exhibit the highest rate of subscription (approximately 25%), with students and those in management positions following closely behind. Blue-collar workers and technicians, on the other hand, are among the least likely to subscribe. These findings highlight job type as a meaningful predictor of subscription, with retired and student demographics showing the greatest openness to term deposit products.
+
+---
+title: "Group Project"
+author: "Ali abdkebir, Nebiyu Habtemariam, Roshan Thapa Magar, Ruhama Adnew"
+date: today
+format: pdf
+output-file: "Bank Marketing Dataset Analysis"
+output-ext: "pdf"
+editor: source
+---
+
+```{r}
+library(tidyverse)
+```
+
+```{r}
+bank<-read.csv("bank_cleaned_minimal.csv")
+```
+
+The dataset has been successfully imported. It consists of 41,188 entries across 55 columns, encompassing both the original numeric fields and one-hot encoded representations of categorical variables.
+
+```{r}
+#shows rows and colums
+dim(bank)
+#shows first few rows
+head(bank)
+```
+
+With 41,188 rows and 55 columns, the dataset is well-structured. A preview of the first entries shows age values between 37 and 57, call lengths roughly between 150 and 300 seconds, and the majority of clients having been contacted once during the campaign. The data is formatted correctly and suitable for further analysis.
+
+```{r}
+#summary all variables
+summary(bank)
+```
+
+The descriptive statistics highlight several notable trends: client ages span from 17 to 98 (with an average near 40), call durations range broadly from 0 to 4,918 seconds, and clients received an average of roughly 2.6 campaign contacts. The numerical variables generally exhibit sensible distributions without any apparent data quality concerns.
+
+```{r}
+#checking missing value
+colSums(is.na(bank))
+```
+
+Every column is free of missing values. The preprocessing steps effectively eliminated all entries marked as "unknown" and addressed any gaps in the data, yielding a fully complete dataset prepared for analysis.
+
+```{r}
+#y= if clients are keep subscribing next term deposit
+table(bank$y)
+prop.table(table(bank$y))
+```
+
+There is a notable class imbalance in the outcome variable: the vast majority of clients — 88.7% — declined to subscribe, whereas just 11.3% agreed. In absolute terms, this translates to 36,548 non-subscribers and 4,640 subscribers. Any predictive modeling effort should account for this skewed distribution.
+
+# Data Cleaning
+
+The bulk of the preprocessing work was carried out in Excel using built-in tools. This included addressing missing values, generating binary indicator variables, and performing basic validation checks. The resulting cleaned dataset was loaded earlier in this document. The following outlines the steps taken:
+
+## Excel Data Cleaning Process Summary
+
+Before importing the data, these preprocessing steps were completed in Excel:
+
+```{r}
+# The cleaned dataset is already loaded as 'bank'
+# Set bank_clean to reference the cleaned data
+bank_clean <- bank
+
+# Display cleaned data summary
+cat("Cleaned Dataset Summary:\n")
+cat("- Rows:", nrow(bank_clean), "\n")
+cat("- Columns:", ncol(bank_clean), "\n")
+cat("- Missing values:", sum(is.na(bank_clean)), "\n")
+cat("- Duplicate rows:", sum(duplicated(bank_clean)), "\n")
+cat("\nKey Variable Statistics:\n")
+cat("- Age range:", min(bank_clean$age), "to", max(bank_clean$age), "| Mean:", round(mean(bank_clean$age), 1), "\n")
+cat("- Avg call duration:", round(mean(bank_clean$duration), 1), "seconds\n")
+cat("- Avg campaign contacts:", round(mean(bank_clean$campaign), 2), "\n")
+cat("- Avg previous contacts:", round(mean(bank_clean$previous), 2), "\n")
+cat("\nTarget Distribution:\n")
+print(table(bank_clean$y, useNA = "ifany"))
+cat("\nSubscription Rate:\n")
+cat("- Yes:", round(mean(bank_clean$y == "yes") * 100, 1), "%\n")
+cat("- No:", round(mean(bank_clean$y == "no") * 100, 1), "%\n")
+```
+
+All 41,188 records and 55 features have been preserved in the cleaned dataset. The cleaning process left no missing values. The outcome variable reflects 36,548 "no" responses (88.7%) and 4,640 "yes" responses (11.3%), verifying that the data is ready for further examination.
+
+### Steps Performed in Excel:
+
+1.  **Missing values**: Find & Replace "unknown" with blanks
+2.  **Binary target variable**: Created y_binary column using IF formula (=IF(y="yes",1,0))
+3.  **Data validation**: Manual review for inconsistencies
+4.  **Duplicate removal**: Removed duplicate rows using Excel's Remove Duplicates feature
+
+# Exploratory Data Analysis
+
+In this section, a range of visualizations are used to examine the cleaned dataset, shedding light on variable distributions, inter-variable relationships, and overall data trends.
+
+## Histogram Visualizations
+
+Histograms are used here to display how key numeric variables are distributed, giving insight into the shape and variability present in the data.
+
+```{r}
+# Age distribution
+ggplot(bank_clean, aes(x = age)) +
+  geom_histogram(bins = 30, fill = "#4E79A7", color = "white", alpha = 0.85) +
+  theme_minimal(base_size = 12) +
+  labs(title = "Distribution of Client Ages",
+       x = "Age", y = "Count")
+```
+
+Client ages follow an approximately bell-shaped distribution, peaking between 35 and 45 years, with the bulk of clients falling in the 25–60 age range. A slight rightward skew is present due to a small number of older clients (70 and above). This profile is consistent with a standard working-age banking clientele.
+
+```{r}
+# Duration distribution
+ggplot(bank_clean, aes(x = duration)) +
+  geom_histogram(bins = 50, fill = "#E15759", color = "white", alpha = 0.85) +
+  scale_x_log10() +
+  theme_minimal(base_size = 12) +
+  labs(title = "Distribution of Call Duration (log scale)",
+       x = "Duration (seconds, log scale)", y = "Count")
+```
+
+Call durations are displayed on a log scale to counteract the heavy right skew in the raw data. On the original scale, the distribution is dominated by a spike of short calls that visually compresses the rest. The log scale spreads the distribution more evenly and reveals that durations follow a roughly log-normal pattern, peaking around 100–300 seconds. The average call length is 258 seconds (roughly 4.3 minutes), though a long tail of extended conversations pulls the mean upward.
+
+```{r}
+# Campaign distribution
+ggplot(bank_clean, aes(x = campaign)) +
+  geom_histogram(bins = 20, fill = "#59A14F", color = "white", alpha = 0.85) +
+  theme_minimal(base_size = 12) +
+  labs(title = "Distribution of Number of Contacts During Campaign",
+       x = "Number of Contacts", y = "Count")
+```
+
+Contact frequency during the campaign is heavily skewed to the right, with over 80% of clients being reached only once. The average stands at 2.57 contacts, yet very few clients were contacted more than five times. This reflects a bank strategy that relies predominantly on single outreach attempts.
+
+## Scatter Plot with Regression Line
+
+Each scatter plot below colors points by subscription outcome (orange = no, blue = yes) and fits a separate regression line per group. This lets us see not just whether two variables are related, but whether that relationship differs between subscribers and non-subscribers — which is far more useful for understanding what drives subscription.
+
+**Plot 1 — Duration vs. Age (colored by subscription)** Duration is the single strongest predictor of subscription in this dataset. Age is the most basic client demographic. Plotting them together and coloring by outcome reveals whether subscribers cluster in a specific age-duration region, or whether duration separates the groups regardless of age.
+
+```{r}
+# Scatter plot: Age vs Duration, colored by subscription outcome
+ggplot(bank_clean, aes(x = age, y = duration, color = y)) +
+  geom_point(alpha = 0.2, size = 0.8) +
+  geom_smooth(method = "lm", se = TRUE, linewidth = 1) +
+  scale_color_manual(values = c("no" = "#F28E2B", "yes" = "#4E79A7"),
+                     labels = c("No", "Yes")) +
+  theme_minimal(base_size = 12) +
+  labs(title = "Call Duration vs. Age by Subscription Outcome",
+       subtitle = "Separate regression lines per group",
+       x = "Age", y = "Duration (seconds)", color = "Subscribed")
+
+cor_age_dur_no  <- cor(bank_clean$age[bank_clean$y == "no"],
+                       bank_clean$duration[bank_clean$y == "no"])
+cor_age_dur_yes <- cor(bank_clean$age[bank_clean$y == "yes"],
+                       bank_clean$duration[bank_clean$y == "yes"])
+cat("Correlation (no):", round(cor_age_dur_no, 3),
+    " | Correlation (yes):", round(cor_age_dur_yes, 3), "\n")
+```
+
+Both groups show essentially no relationship between age and duration (correlations near zero), but the blue "yes" points are visibly concentrated at higher duration values across all ages. This confirms that call duration separates subscribers from non-subscribers independent of how old the client is.
+
+**Plot 2 — Duration vs. Campaign Contacts (colored by subscription)** Duration measures engagement quality; campaign contacts measures outreach quantity. Comparing them reveals whether the bank's contact strategy (calling more often) substitutes for or complements the quality of individual conversations.
+
+```{r}
+# Scatter plot: Duration vs Campaign contacts, colored by subscription outcome
+ggplot(bank_clean, aes(x = campaign, y = duration, color = y)) +
+  geom_jitter(alpha = 0.2, size = 0.8, width = 0.3) +
+  geom_smooth(method = "lm", se = TRUE, linewidth = 1) +
+  scale_color_manual(values = c("no" = "#F28E2B", "yes" = "#4E79A7"),
+                     labels = c("No", "Yes")) +
+  theme_minimal(base_size = 12) +
+  labs(title = "Call Duration vs. Campaign Contacts by Subscription Outcome",
+       subtitle = "Separate regression lines per group",
+       x = "Number of Campaign Contacts", y = "Duration (seconds)", color = "Subscribed")
+
+cor_dur_camp_no  <- cor(bank_clean$duration[bank_clean$y == "no"],
+                        bank_clean$campaign[bank_clean$y == "no"])
+cor_dur_camp_yes <- cor(bank_clean$duration[bank_clean$y == "yes"],
+                        bank_clean$campaign[bank_clean$y == "yes"])
+cat("Correlation (no):", round(cor_dur_camp_no, 3),
+    " | Correlation (yes):", round(cor_dur_camp_yes, 3), "\n")
+```
+
+The blue "yes" cluster sits markedly higher on the duration axis and concentrates at lower campaign contact counts. The regression lines for both groups slope slightly downward, reinforcing that more calls do not produce longer conversations. Subscribers are won through a single quality interaction, not repeated contact.
+
+**Plot 3 — Previous Contacts vs. Campaign Contacts (colored by subscription)** Previous contacts reflects historical engagement with the client, while campaign contacts reflects current outreach effort. Examining how these two frequency measures interact — and whether that pattern differs for subscribers — tells us whether prior relationship-building changes how the current campaign plays out.
+
+```{r}
+# Scatter plot: Previous vs Campaign contacts, colored by subscription outcome
+ggplot(bank_clean, aes(x = previous, y = campaign, color = y)) +
+  geom_jitter(alpha = 0.25, size = 0.9, width = 0.2, height = 0.2) +
+  geom_smooth(method = "lm", se = TRUE, linewidth = 1) +
+  scale_color_manual(values = c("no" = "#F28E2B", "yes" = "#4E79A7"),
+                     labels = c("No", "Yes")) +
+  theme_minimal(base_size = 12) +
+  labs(title = "Previous Contacts vs. Campaign Contacts by Subscription Outcome",
+       subtitle = "Separate regression lines per group",
+       x = "Number of Previous Contacts", y = "Number of Campaign Contacts",
+       color = "Subscribed")
+
+cor_prev_camp_no  <- cor(bank_clean$previous[bank_clean$y == "no"],
+                         bank_clean$campaign[bank_clean$y == "no"])
+cor_prev_camp_yes <- cor(bank_clean$previous[bank_clean$y == "yes"],
+                         bank_clean$campaign[bank_clean$y == "yes"])
+cat("Correlation (no):", round(cor_prev_camp_no, 3),
+    " | Correlation (yes):", round(cor_prev_camp_yes, 3), "\n")
+```
+
+Clients with prior contacts (previous \> 0) who subscribed tend to have received fewer current campaign calls — the blue regression line slopes more steeply downward than the orange. This suggests that clients with an existing relationship require less current effort to convert, supporting the value of long-term client engagement over aggressive short-term outreach.
+
+## Box Plot Visualizations
+
+Four variables — age, call duration, campaign contacts, and previous contacts — are each examined across subscription outcomes using a combined violin and box plot. The violin layer exposes the full shape of each distribution, the embedded box plot captures the median and interquartile range, and a white diamond marks the group mean. Together these elements offer a richer comparison between subscribers and non-subscribers than a standard box plot alone.
+
+A comparison of age distributions across subscription outcomes.
+
+```{r}
+# Violin + Box plot: Age by subscription status
+ggplot(bank_clean, aes(x = y, y = age, fill = y)) +
+  geom_violin(alpha = 0.4, color = NA, trim = FALSE) +
+  geom_boxplot(width = 0.2, alpha = 0.85, color = "gray30",
+               outlier.shape = 21, outlier.size = 1.2) +
+  stat_summary(fun = mean, geom = "point", shape = 23,
+               size = 3, fill = "white", color = "gray20") +
+  theme_minimal(base_size = 12) +
+  labs(title = "Age Distribution by Subscription Status",
+       x = "Subscribed", y = "Age", fill = "Subscribed") +
+  scale_fill_manual(values = c("no" = "#F28E2B", "yes" = "#4E79A7"))
+```
+
+The age distributions for both subscribers and non-subscribers are nearly identical, with medians hovering between 39 and 41 years. The violin shapes confirm the overlap — both groups peak in the 30–50 range. Age on its own is a poor predictor of subscription and does not serve as a meaningful distinguishing factor.
+
+A comparison of call duration distributions across subscription outcomes.
+
+```{r}
+# Violin + Box plot: Duration by subscription status
+ggplot(bank_clean, aes(x = y, y = duration, fill = y)) +
+  geom_violin(alpha = 0.4, color = NA, trim = FALSE) +
+  geom_boxplot(width = 0.2, alpha = 0.85, color = "gray30",
+               outlier.shape = 21, outlier.size = 1.2) +
+  stat_summary(fun = mean, geom = "point", shape = 23,
+               size = 3, fill = "white", color = "gray20") +
+  theme_minimal(base_size = 12) +
+  labs(title = "Call Duration Distribution by Subscription Status",
+       x = "Subscribed", y = "Duration (seconds)", fill = "Subscribed") +
+  scale_fill_manual(values = c("no" = "#F28E2B", "yes" = "#4E79A7"))
+```
+
+A standout result: clients who subscribed had substantially longer calls (median of roughly 550 seconds) than those who did not (median of approximately 220 seconds). The violin shapes make the separation even clearer — the "yes" group has a much wider, taller distribution. Extended conversations are indicative of greater client engagement and genuine interest.
+
+A comparison of campaign contact counts across subscription outcomes.
+
+```{r}
+# Violin + Box plot: Campaign contacts by subscription status
+ggplot(bank_clean, aes(x = y, y = campaign, fill = y)) +
+  geom_violin(alpha = 0.4, color = NA, trim = TRUE) +
+  geom_boxplot(width = 0.2, alpha = 0.85, color = "gray30",
+               outlier.shape = 21, outlier.size = 1.2) +
+  stat_summary(fun = mean, geom = "point", shape = 23,
+               size = 3, fill = "white", color = "gray20") +
+  theme_minimal(base_size = 12) +
+  labs(title = "Campaign Contacts by Subscription Status",
+       x = "Subscribed", y = "Number of Campaign Contacts", fill = "Subscribed") +
+  scale_fill_manual(values = c("no" = "#F28E2B", "yes" = "#4E79A7"))
+```
+
+Subscribers were contacted fewer times on average (mean \~2.1) compared to non-subscribers (mean \~2.6). The violin for non-subscribers is wider at higher contact counts, suggesting that repeated outreach does not improve — and may slightly reduce — the likelihood of subscription. Quality of contact appears more important than frequency.
+
+A comparison of previous campaign contact counts across subscription outcomes.
+
+```{r}
+# Violin + Box plot: Previous contacts by subscription status
+ggplot(bank_clean, aes(x = y, y = previous, fill = y)) +
+  geom_violin(alpha = 0.4, color = NA, trim = TRUE) +
+  geom_boxplot(width = 0.2, alpha = 0.85, color = "gray30",
+               outlier.shape = 21, outlier.size = 1.2) +
+  stat_summary(fun = mean, geom = "point", shape = 23,
+               size = 3, fill = "white", color = "gray20") +
+  theme_minimal(base_size = 12) +
+  labs(title = "Previous Contacts by Subscription Status",
+       x = "Subscribed", y = "Number of Previous Contacts", fill = "Subscribed") +
+  scale_fill_manual(values = c("no" = "#F28E2B", "yes" = "#4E79A7"))
+```
+
+Subscribers had notably more prior campaign contacts (mean \~0.49) than non-subscribers (mean \~0.13). This suggests that clients who had been engaged in earlier campaigns are more likely to subscribe, indicating that prior relationship-building plays a role in conversion success.
+
+## Additional Trend Analysis
+
+Aggregated statistics broken down by subscription outcome offer a quantitative look at how subscribers and non-subscribers differ across key variables.
+
+```{r}
+# Summary statistics of key numerical features by subscription status
+trend_summary <- bank_clean %>%
+  group_by(y) %>%
+  summarise(
+    Mean_Age = mean(age, na.rm = TRUE),
+    Mean_Duration = mean(duration, na.rm = TRUE),
+    Mean_Campaign = mean(campaign, na.rm = TRUE),
+    Mean_Previous = mean(previous, na.rm = TRUE),
+    .groups = "drop"
+  )
+print(trend_summary)
+```
+
+Several notable contrasts appear: subscribers are slightly older on average (40.9 vs. 39.9 years), experienced significantly longer calls (553 vs. 221 seconds), were contacted fewer times during the campaign (2.05 vs. 2.63), and had more prior contacts (0.49 vs. 0.13). The most dramatic gap is in call duration — subscribers' calls are 2.5 times as long. This points to the value of meaningful conversations over sheer contact volume.
+
+```{r}
+#Distribution of age to see the rang of people who aspect this research
+ggplot(bank, aes(x=age))+
+  geom_histogram(fill="#76B7B2", bins=30, color="white", alpha=0.85)+
+  theme_minimal(base_size = 12)+
+  labs(title="Age Distribution of Clients", x="Age", y="Count")
+```
+
+This histogram reaffirms the earlier age distribution findings: a symmetric, bell-shaped curve peaking in the 35–45 range, with the greatest concentration of clients in their 30s and 40s. The pattern is characteristic of a standard banking customer base composed primarily of working-age adults, with relatively few clients under 25 or over 70.
+
+```{r}
+#subscription rate by job type
+# Load original data for this visualization (job column needed)
+bank_original <- read.csv("bank-additional/bank-additional/bank-additional-full.csv", sep = ";")
+
+ggplot(bank_original, aes(x=job, fill = y))+
+  geom_bar(position = "fill", color = "white", linewidth = 0.3)+
+  coord_flip()+
+  labs(title="Term Deposit Subscription by Job Type", y="Proportion", x="Job Type", fill="Subscribed")+
+  scale_fill_manual(values = c("no" = "#F28E2B", "yes" = "#4E79A7"))+
+  theme_minimal(base_size = 12)
+```
+
+The bar chart uncovers considerable differences in subscription rates depending on occupation. Retirees exhibit the highest rate of subscription (approximately 25%), with students and those in management positions following closely behind. Blue-collar workers and technicians, on the other hand, are among the least likely to subscribe. These findings highlight job type as a meaningful predictor of subscription, with retired and student demographics showing the greatest openness to term deposit products.
+
+# Correlation Analysis
+
+To better understand the relationships between the original continuous features without the clutter of the one-hot encoded variables, we generated a correlation heatmap of the primary numeric indicators.
+
+```{r}
+# Select key numeric variables for a clean correlation matrix
+key_numeric <- bank_clean %>% 
+  select(age, duration, campaign, pdays, previous, emp.var.rate, euribor3m, nr.employed)
+
+# Calculate correlations
+cor_matrix <- cor(key_numeric, use = "complete.obs")
+cor_data <- as.data.frame(as.table(cor_matrix))
+
+# Plot the heatmap
+ggplot(cor_data, aes(Var1, Var2, fill = Freq)) +
+  geom_tile(color = "white") +
+  scale_fill_gradient2(low = "#E15759", mid = "white", high = "#4E79A7", 
+                       midpoint = 0, limit = c(-1,1), name = "Correlation") +
+  theme_minimal(base_size = 12) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  labs(title = "Correlation Heatmap of Key Numeric Variables", x = "", y = "")
+```
+
+The correlation heatmap highlights strong relationships among the macroeconomic indicators: specifically `euribor3m`, `nr.employed`, and `emp.var.rate`—which are highly positively correlated and move together as the economic environment shifts. There is also an expected structural relationship indicating that `pdays` decreases as `previous` contact increases. Meanwhile, behavioral metrics like `duration` and `campaign`, along with demographics like `age`, share almost no linear correlation with the other features.
